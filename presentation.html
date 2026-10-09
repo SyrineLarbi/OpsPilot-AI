@@ -1,0 +1,831 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpsPilot AI</title>
+<meta name="description" content="OpsPilot AI: AI automation, internal tools and data analytics for growing distribution businesses.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f7f7fb;
+    --surface: #ffffff;
+    --surface-2: #f0f1f8;
+    --text: #141627;
+    --muted: #5d6280;
+    --line: #e2e4ef;
+    --brand: #4f46e5;
+    --brand-soft: #eceafd;
+    --c-auto: #4f46e5;
+    --c-tool: #0891b2;
+    --c-data: #d97706;
+    --ok: #059669;
+    --shadow: 0 1px 2px rgba(20,22,39,.04), 0 8px 24px rgba(20,22,39,.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0e1020; --surface: #171a2e; --surface-2: #1e2238; --text: #eceef8; --muted: #9da3c4;
+      --line: #2a2f4a; --brand: #8b85ff; --brand-soft: #25234a;
+      --c-auto: #8b85ff; --c-tool: #22c3e6; --c-data: #f5a524; --ok: #34d399;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0e1020; --surface: #171a2e; --surface-2: #1e2238; --text: #eceef8; --muted: #9da3c4;
+    --line: #2a2f4a; --brand: #8b85ff; --brand-soft: #25234a;
+    --c-auto: #8b85ff; --c-tool: #22c3e6; --c-data: #f5a524; --ok: #34d399;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased; overflow: hidden;
+  }
+
+  /* ---------- deck ---------- */
+  .deck { position: relative; height: 100dvh; }
+  .slide {
+    position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center;
+    padding: clamp(24px, 6vw, 88px) clamp(16px, 7vw, 112px) 96px;
+    opacity: 0; visibility: hidden; transform: translateY(12px);
+    transition: opacity .35s ease, transform .35s ease, visibility .35s;
+    overflow-y: auto;
+  }
+  .slide.active { opacity: 1; visibility: visible; transform: none; }
+  .inner { width: 100%; max-width: 1120px; margin: 0 auto; }
+
+  .eyebrow { font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--brand); margin: 0 0 14px; }
+  h1 { font-size: clamp(36px, 6.4vw, 76px); line-height: 1.02; letter-spacing: -.03em; margin: 0 0 20px; font-weight: 800; }
+  h2 { font-size: clamp(28px, 4.2vw, 48px); line-height: 1.08; letter-spacing: -.02em; margin: 0 0 14px; font-weight: 750; }
+  h3 { font-size: 19px; margin: 0 0 8px; font-weight: 650; }
+  p.lead { font-size: clamp(17px, 1.9vw, 22px); color: var(--muted); line-height: 1.5; max-width: 760px; margin: 0 0 28px; }
+  p, li { line-height: 1.55; }
+  .muted { color: var(--muted); }
+
+  .grid { display: grid; gap: 16px; }
+  .g2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .g3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .g4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  @media (max-width: 860px) { .g3, .g4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 560px) { .g2, .g3, .g4 { grid-template-columns: 1fr; } }
+
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 22px; box-shadow: var(--shadow); }
+  .card p { margin: 0; color: var(--muted); font-size: 15px; }
+  .card ul { margin: 10px 0 0; padding-left: 18px; color: var(--muted); font-size: 15px; }
+  .tag { display: inline-block; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: var(--surface-2); color: var(--muted); margin-top: 14px; }
+  .bar { height: 4px; border-radius: 4px; margin-bottom: 18px; width: 44px; }
+  .auto .bar { background: var(--c-auto); } .tool .bar { background: var(--c-tool); } .data .bar { background: var(--c-data); }
+  .auto .tag { color: var(--c-auto); } .tool .tag { color: var(--c-tool); } .data .tag { color: var(--c-data); }
+
+  .stat { font-size: clamp(30px, 4vw, 44px); font-weight: 800; letter-spacing: -.02em; }
+
+  /* pipeline */
+  .flow { display: flex; align-items: stretch; gap: 10px; flex-wrap: wrap; margin: 8px 0 24px; }
+  .step { flex: 1 1 150px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; position: relative; box-shadow: var(--shadow); }
+  .step b { display: block; font-size: 15px; margin-bottom: 4px; }
+  .step span { font-size: 13px; color: var(--muted); }
+  .step .n { font-size: 12px; font-weight: 700; color: var(--accent, var(--brand)); margin-bottom: 8px; display: block; }
+  .arrow { align-self: center; color: var(--muted); font-size: 20px; }
+  @media (max-width: 700px) { .arrow { display: none; } }
+
+  /* timeline */
+  .timeline { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+  @media (max-width: 900px) { .timeline { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .phase { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; box-shadow: var(--shadow); border-top: 4px solid var(--accent, var(--brand)); }
+  .phase .wk { font-size: 12px; font-weight: 700; color: var(--accent, var(--brand)); text-transform: uppercase; letter-spacing: .06em; }
+  .phase b { display: block; margin: 6px 0; font-size: 15px; }
+  .phase span { font-size: 13px; color: var(--muted); line-height: 1.45; display: block; }
+
+  /* stack */
+  .stack-row { display: grid; grid-template-columns: 170px 1fr; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--line); align-items: center; }
+  .stack-row:last-child { border-bottom: 0; }
+  .stack-row .k { font-weight: 650; font-size: 15px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { font-size: 13.5px; padding: 6px 12px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); }
+  @media (max-width: 560px) { .stack-row { grid-template-columns: 1fr; gap: 8px; } }
+
+  /* architecture svg */
+  .arch { width: 100%; height: auto; max-height: 58vh; }
+  .arch .box { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+  .arch .lbl { fill: var(--text); font: 600 15px Inter, system-ui, sans-serif; }
+  .arch .sub { fill: var(--muted); font: 400 12.5px Inter, system-ui, sans-serif; }
+  .arch .ln { stroke: var(--muted); stroke-width: 1.6; fill: none; }
+  .arch .opt { stroke-dasharray: 6 5; }
+  .arch .ah { fill: var(--muted); }
+
+  .check { list-style: none; padding: 0; margin: 0; }
+  .check li { padding-left: 28px; position: relative; margin: 8px 0; }
+  .check li::before { content: "✓"; position: absolute; left: 0; color: var(--ok); font-weight: 700; }
+
+  .cta { display: inline-flex; align-items: center; gap: 10px; background: var(--brand); color: #fff; padding: 14px 22px; border-radius: 12px; font-weight: 600; text-decoration: none; }
+  .quote { font-size: clamp(20px, 2.6vw, 30px); font-weight: 600; line-height: 1.35; letter-spacing: -.01em; max-width: 880px; }
+
+  .hero-badges { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+  .hero-badges .chip { background: var(--surface); }
+
+  /* ---------- demo mockups ---------- */
+  .demo { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 28px; align-items: start; }
+  @media (max-width: 900px) { .demo { grid-template-columns: 1fr; } }
+  .shots { display: grid; gap: 14px; position: relative; }
+  .win { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; position: relative; font-size: 12.5px; }
+  .win-bar { display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: var(--surface-2); border-bottom: 1px solid var(--line); }
+  .win-bar i { width: 9px; height: 9px; border-radius: 50%; background: var(--line); display: block; }
+  .win-bar i:nth-child(1) { background: #f87171; } .win-bar i:nth-child(2) { background: #fbbf24; } .win-bar i:nth-child(3) { background: #34d399; }
+  .win-bar .url { margin-left: 10px; flex: 1; font-size: 11.5px; color: var(--muted); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 3px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .win-body { padding: 14px; }
+  .pin { position: absolute; width: 22px; height: 22px; border-radius: 50%; background: var(--brand); color: #fff; font-size: 12px; font-weight: 700; display: grid; place-items: center; box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand) 25%, transparent); z-index: 2; }
+  .mock-note { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+
+  .script { counter-reset: s; list-style: none; padding: 0; margin: 0; }
+  .script li { counter-increment: s; position: relative; padding: 0 0 14px 38px; font-size: 15px; color: var(--muted); }
+  .script li b { color: var(--text); display: block; font-size: 15.5px; }
+  .script li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 24px; height: 24px; border-radius: 50%; background: var(--brand); color: #fff; font-size: 12px; font-weight: 700; display: grid; place-items: center; }
+  .result { margin-top: 6px; padding: 14px 16px; border-radius: 12px; background: var(--brand-soft); font-size: 14.5px; }
+  .result b { color: var(--brand); }
+
+  /* n8n canvas */
+  .canvas { background-color: var(--surface-2); background-image: radial-gradient(var(--line) 1px, transparent 1px); background-size: 14px 14px; border-radius: 8px; padding: 18px 10px; display: flex; align-items: center; gap: 6px; overflow: hidden; }
+  .node { background: var(--surface); border: 1.5px solid var(--line); border-radius: 9px; padding: 8px 6px; text-align: center; min-width: 0; flex: 1; font-size: 11px; font-weight: 600; line-height: 1.25; }
+  .node .ic { font-size: 16px; display: block; margin-bottom: 3px; }
+  .node.ok { border-color: var(--ok); } .node.warn { border-color: #f59e0b; }
+  .node small { display: block; font-weight: 500; color: var(--muted); font-size: 10px; }
+  .wire { color: var(--muted); font-size: 12px; flex: 0 0 auto; }
+  .split { display: grid; gap: 6px; flex: 1.2; }
+
+  /* email */
+  .mail-h { display: grid; grid-template-columns: 56px 1fr; gap: 2px 8px; font-size: 11.5px; color: var(--muted); padding-bottom: 10px; border-bottom: 1px solid var(--line); margin-bottom: 10px; }
+  .mail-h b { color: var(--text); font-weight: 600; }
+  .mail ul { margin: 4px 0 8px; padding-left: 18px; }
+  .mail li { margin: 2px 0; }
+  .err { color: #dc2626; }
+  :root[data-theme="dark"] .err { color: #f87171; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .err { color: #f87171; } }
+
+  /* app */
+  .app { display: grid; grid-template-columns: 112px 1fr; min-height: 250px; }
+  .side { background: var(--surface-2); border-right: 1px solid var(--line); padding: 12px 8px; display: grid; align-content: start; gap: 3px; }
+  .side div { padding: 6px 8px; border-radius: 6px; font-size: 11.5px; color: var(--muted); }
+  .side .on { background: var(--brand-soft); color: var(--brand); font-weight: 600; }
+  .main { padding: 12px 14px; min-width: 0; }
+  .toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+  .search { flex: 1; min-width: 120px; border: 1px solid var(--line); border-radius: 7px; padding: 5px 9px; color: var(--text); background: var(--surface); }
+  .pill { font-size: 10.5px; padding: 3px 8px; border-radius: 99px; background: var(--surface-2); border: 1px solid var(--line); white-space: nowrap; }
+  .pill.on { background: var(--brand-soft); color: var(--brand); border-color: transparent; font-weight: 600; }
+  .tbl { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+  .tbl th { text-align: left; font-weight: 600; color: var(--muted); padding: 5px 6px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .tbl td { padding: 6px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .tbl .r { text-align: right; font-variant-numeric: tabular-nums; }
+  .low { color: #dc2626; font-weight: 700; }
+  .badge { font-size: 10px; padding: 2px 7px; border-radius: 99px; font-weight: 600; background: var(--surface-2); }
+  .b-auto { background: var(--brand-soft); color: var(--brand); }
+  .b-pend { background: #fef3c7; color: #92400e; } .b-ok { background: #d1fae5; color: #065f46; }
+  .mini-btn { font-size: 10.5px; padding: 3px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); }
+  .mini-btn.p { background: var(--ok); color: #fff; border-color: transparent; }
+  .toast { position: absolute; right: 12px; bottom: 12px; background: var(--text); color: var(--bg); font-size: 11.5px; padding: 8px 12px; border-radius: 8px; box-shadow: var(--shadow); }
+  @media (max-width: 560px) {
+    .win-body .tbl { display: block; overflow-x: auto; }
+    .app { grid-template-columns: 1fr; } .side { display: none; } .hide-sm { display: none; }
+    .toast { position: relative; right: auto; bottom: auto; display: inline-block; margin-top: 12px; }
+    .win-body[style*="padding-bottom"] { padding-bottom: 14px !important; }
+  }
+
+  /* analytics */
+  .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 10px; }
+  @media (max-width: 560px) { .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .metric { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+  .metric span { display: block; font-size: 10.5px; color: var(--muted); }
+  .metric b { font-size: 16px; letter-spacing: -.01em; }
+  .metric em { font-style: normal; font-size: 10.5px; color: #dc2626; font-weight: 600; }
+  .an-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 10px; }
+  @media (max-width: 560px) { .an-grid { grid-template-columns: 1fr; } }
+  .panel { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; min-width: 0; }
+  .panel h4 { margin: 0 0 6px; font-size: 11.5px; }
+  .chart { width: 100%; height: 110px; display: block; }
+  .chart .grid-l { stroke: var(--line); stroke-width: 1; }
+  .chart .ln2 { stroke: var(--c-data); stroke-width: 2.2; fill: none; }
+  .chart .area { fill: color-mix(in srgb, var(--c-data) 14%, transparent); }
+  .chart text { fill: var(--muted); font: 9px Inter, system-ui, sans-serif; }
+
+  /* ---------- chrome ---------- */
+  .nav {
+    position: fixed; left: 0; right: 0; bottom: 0; height: 64px; display: flex; align-items: center; justify-content: space-between;
+    padding: 0 16px; gap: 12px; background: linear-gradient(to top, var(--bg) 60%, transparent); z-index: 5;
+  }
+  .brand { font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+  .logo { width: 22px; height: 22px; border-radius: 6px; background: var(--brand); display: grid; place-items: center; color: #fff; font-size: 12px; font-weight: 800; }
+  .dots { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+  .dot { width: 8px; height: 8px; border-radius: 99px; background: var(--line); border: 0; padding: 0; cursor: pointer; transition: width .25s, background .25s; }
+  .dot.on { width: 22px; background: var(--brand); }
+  .ctrl { display: flex; gap: 6px; align-items: center; }
+  .btn { background: var(--surface); border: 1px solid var(--line); color: var(--text); border-radius: 10px; height: 36px; min-width: 36px; padding: 0 10px; cursor: pointer; font: inherit; font-size: 14px; }
+  .btn:hover { border-color: var(--brand); }
+  .count { font-size: 13px; color: var(--muted); min-width: 44px; text-align: center; font-variant-numeric: tabular-nums; }
+  @media (max-width: 560px) { .brand span, .dots, .guide-label { display: none; } }
+  .progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--brand); transition: width .35s ease; z-index: 6; }
+
+  @media print {
+    body { overflow: visible; }
+    .deck { height: auto; }
+    .slide { position: relative; opacity: 1; visibility: visible; transform: none; min-height: 100vh; page-break-after: always; }
+    .nav, .progress { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<main class="deck" id="deck">
+
+  <!-- 1. Title -->
+  <section class="slide">
+    <div class="inner">
+      <p class="eyebrow">AI &amp; Business Technology Services</p>
+      <h1>OpsPilot AI</h1>
+      <p class="lead">Less admin, clearer numbers. We help growing distribution businesses automate repetitive work, run their operations in simple custom tools, and see what their data is telling them.</p>
+      <div class="hero-badges">
+        <span class="chip">⚙️ Automation</span>
+        <span class="chip">🧰 Internal tools</span>
+        <span class="chip">📊 Data analytics</span>
+      </div>
+      <p class="muted" style="margin-top:40px;font-size:14px">Use the arrow keys, swipe, or the buttons below · F for full screen · L for français</p>
+    </div>
+  </section>
+
+  <!-- 2. Problem -->
+  <section class="slide">
+    <div class="inner">
+      <p class="eyebrow">The problem</p>
+      <h2>Growing distributors run on manual work</h2>
+      <p class="lead">Teams spend days on tasks that a reliable system could do in minutes, and errors are found too late.</p>
+      <div class="grid g3">
+        <div class="card"><div class="stat">📄</div><h3>Invoices typed by hand</h3><p>Supplier invoices re-entered line by line, with VAT and totals checked by eye.</p></div>
+        <div class="card"><div class="stat">📦</div><h3>Stock in spreadsheets</h3><p>Several Excel files, no single truth, no record of who changed what.</p></div>
+        <div class="card"><div class="stat">⏳</div><h3>Reports take days</h3><p>The monthly report arrives late, and declining products are noticed after the damage is done.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. Three services -->
+  <section class="slide">
+    <div class="inner">
+      <p class="eyebrow">The offer</p>
+      <h2>One brand · three independent services</h2>
+      <p class="lead">Buy only what solves today's problem. Combine them later if it makes sense.</p>
+      <div class="grid g3">
+        <div class="card auto"><div class="bar"></div><h3>Automation</h3><p>Connect apps and remove repetitive workflows: invoices, emails, CSV imports, alerts.</p><span class="tag">Buy separately</span></div>
+        <div class="card tool"><div class="bar"></div><h3>Internal tools</h3><p>Custom business applications: inventory, invoice approval, roles and audit trail.</p><span class="tag">Buy separately</span></div>
+        <div class="card data"><div class="bar"></div><h3>Data analytics</h3><p>Clean data, KPIs, dashboards and monthly reports that show what needs attention.</p><span class="tag">Buy separately</span></div>
+      </div>
+      <div class="card" style="margin-top:16px;display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+        <strong>Optional combined project:</strong>
+        <span class="muted">automation feeds the application → analytics reads the same data</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. Automation -->
+  <section class="slide">
+    <div class="inner">
+      <p class="eyebrow" style="color:var(--c-auto)">Service 1: Automation</p>
+      <h2>Supplier invoices, checked and recorded automatically</h2>
+      <p class="lead">Rules first, AI second. Every record is validated; nothing questionable reaches your books silently.</p>
+      <div class="flow" style="--accent:var(--c-auto)">
+        <div class="step"><span class="n">01</span><b>Receive</b><span>CSV, email or PDF dropped in an inbox folder</span></div>
+        <div class="arrow">→</div>
+        <div class="step"><span class="n">02</span><b>Extract</b><span>Read fields; optional OCR &amp; local AI for scans</span></div>
+        <div class="arrow">→</div>
+        <div class="step"><span class="n">03</span><b>Validate</b><span>Dates, VAT, totals, currency, duplicates</span></div>
+        <div class="arrow">→</div>
+        <div class="step"><span class="n">04</span><b>Save</b><span>Verified records in the database; errors quarantined</span></div>
+        <div class="arrow">→</div>
+        <div class="step"><span class="n">05</span><b>Alert</b><span>Summary email with what needs attention</span></div>
+      </div>
+      <div class="grid g3">
+        <div class="card"><div class="stat" style="color:var(--c-auto)">Seconds</div><p>to check a 50-invoice file, instead of hours by hand</p></div>
+        <div class="card"><div class="stat" style="color:var(--c-auto)">100%</div><p>of rejected rows explained in plain language</p></div>
+        <div class="card"><div class="stat" style="color:var(--c-auto)">0</div><p>duplicates: the same invoice is never recorded twice</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4b. Automation demo -->
+  <section class="slide">
+    <div class="inner">
+      <p class="eyebrow" style="color:var(--c-auto)">Demo · Automation</p>
+      <h2>A messy invoice file, processed in one drop</h2>
+      <div class="demo">
+        <div class="shots">
+          <div class="win">
+            <div class="win-bar"><i></i><i></i><i></i><span class="url">localhost:5678 · n8n · Supplier invoice import</span></div>
+            <div class="win-body">
+              <div class="canvas">
+                <div class="node" style="position:relative"><span class="pin" style="top:-11px;left:-8px">1</span><span class="ic">📂</span>Inbox<small>file added</small></div>
+                <span class="wire">→</span>
+                <div class="node"><span class="ic">📄</span>Read CSV<small>51 rows</small></div>
+                <span class="wire">→</span>
+                <div class="node" style="position:relative"><span class="pin" style="top:-11px;left:-8px">2</span><span class="ic">✅</span>Validate<small>10 rules</small></div>
+                <span class="wire">→</span>
+                <div class="split">
+                  <div class="node ok"><span class="ic">🗄️</span>Save valid<small>45 saved · 1 dup</small></div>
+                  <div class="node warn"><span class="ic">⚠️</span>Rejections<small>5 rows</small></div>
+                </div>
+                <span class="wire">→</span>
+                <div class="node"><span class="ic">✉️</span>Summary<small>email</small></div>
+              </div>
+              <p class="mock-note">Execution #128 · succeeded in 3.1 s</p>
+            </div>
+          </div>
+          <div class="win" style="position:relative">
+            <span class="pin" style="top:10px;right:12px">3</span>
+            <div class="win-bar"><i></i><i></i><i></i><span class="url">localhost:8025 · Mailpit inbox</span></div>
+            <div class="win-body mail">
+              <div class="mail-h"><span>From</span><b>OpsPilot Automation</b><span>Subject</span><b>[OpsPilot] invoices_0915.csv: 45 saved, 5 rejected, 1 duplicate</b></div>
+              <b>Invoice import summary</b>
+              <ul><li>Rows read: 51 · Saved: 45 (total 612,480.315 TND)</li><li>Rejected: 5 · Duplicates skipped: 1</li></ul>
+              <b>Needs attention</b>
+              <ul class="err">
+                <li>Row 9 (INV-2026-00008): invoice_date "31/02/2026" is not a valid date</li>
+                <li>Row 17 (INV-2026-00016): amount_ttc does not equal amount_ht + vat_amount</li>
+                <li>Row 33 (INV-2026-00032): supplier_tax_id is missing</li>
+              </ul>
+            </div>
+          </div>
+          <p class="mock-note">Illustrative mockup with synthetic data. The real demo video is recorded from the running workflow.</p>
+        </div>
+        <div>
+          <ol class="script">
+            <li><b>Drop the file</b>A supplier CSV with 51 invoices lands in the inbox folder, or arrives as an email attachment.</li>
+            <li><b>Rules check every row</b>Dates, VAT maths, totals, currency, missing fields and duplicates, with no human retyping.</li>
+            <li><b>The team gets a summary</b>Good invoices are saved; the 5 problems arrive with a plain-language reason, ready to fix.</li>
+          </ol>
+          <div class="result"><b>Before:</b> ~4 min per invoice typed and checked by hand.<br><b>After:</b> only the 5 flagged rows need a person.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. Internal tools -->
+  <section class="slide">
+    <div class="inner">
+      <p class="eyebrow" style="color:var(--c-tool)">Service 2: Internal tools</p>
+      <h2>An inventory &amp; invoice manager your team actually uses</h2>
+      <p class="lead">A secure web application shaped around your process instead of the other way round.</p>
+      <div class="grid g4">
+        <div class="card tool"><div class="bar"></div><h3>Login &amp; roles</h3><p>Admin, manager and staff each see and do only what they should.</p></div>
+        <div class="card tool"><div class="bar"></div><h3>Search &amp; CRUD</h3><p>Products, suppliers and invoices with fast search and validation.</p></div>
+        <div class="card tool"><div class="bar"></div><h3>Stock movements</h3><p>Receipts and shipments update stock safely and never go negative.</p></div>
+        <div class="card tool"><div class="bar"></div><h3>Audit trail</h3><p>Every change: who, what and when, ready for any review.</p></div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <ul class="check" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:0 24px">
+          <li>Low-stock and overdue-invoice dashboard</li>
+          <li>Invoice approval workflow</li>
+          <li>Automated permission &amp; validation tests</li>
+          <li>API documentation included</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5b. Internal tool demo -->
+  <section class="slide">
+    <div class="inner">
+      <p class="eyebrow" style="color:var(--c-tool)">Demo · Internal tool</p>
+      <h2>Three roles, one source of truth</h2>
+      <div class="demo">
+        <div class="shots">
+          <div class="win">
+            <div class="win-bar"><i></i><i></i><i></i><span class="url">localhost:3000/products · signed in as Sami (Staff)</span></div>
+            <div class="app">
+              <div class="side"><div>📊 Dashboard</div><div class="on">📦 Products</div><div>🔁 Stock</div><div>🧾 Invoices</div><div>🏭 Suppliers</div><div style="opacity:.45">🔒 Audit log</div></div>
+              <div class="main">
+                <div class="toolbar" style="position:relative">
+                  <span class="pin" style="top:-10px;left:-10px">1</span>
+                  <span class="search">🔍 juice</span><span class="pill on">Low stock only</span><span class="pill">All categories</span>
+                </div>
+                <table class="tbl">
+                  <tr><th>SKU</th><th>Product</th><th class="hide-sm">Supplier</th><th class="r">Stock</th><th class="r">Reorder at</th></tr>
+                  <tr><td>SKU-0014</td><td>Orange juice 1L</td><td class="hide-sm">Cap Bon Beverages</td><td class="r low">6</td><td class="r">20</td></tr>
+                  <tr><td>SKU-0021</td><td>Apple juice 25cl</td><td class="hide-sm">Cap Bon Beverages</td><td class="r low">0</td><td class="r">50</td></tr>
+                  <tr><td>SKU-0047</td><td>Mango juice 1L</td><td class="hide-sm">Medina Food Distr.</td><td class="r low">9</td><td class="r">10</td></tr>
+                </table>
+                <p class="mock-note">3 of 120 products below their reorder level</p>
+              </div>
+            </div>
+          </div>
+          <div class="win">
+            <span class="pin" style="top:46px;right:10px">2</span>
+            <div class="win-bar"><i></i><i></i><i></i><span class="url">localhost:3000/invoices · signed in as Mehdi (Manager)</span></div>
+            <div class="win-body" style="padding-bottom:46px">
+              <table class="tbl">
+                <tr><th>Invoice</th><th class="hide-sm">Supplier</th><th class="r">Total TTC</th><th>Source</th><th>Status</th><th></th></tr>
+                <tr><td>INV-2026-00017</td><td class="hide-sm">Sahel Packaging</td><td class="r">14,322.110</td><td><span class="badge b-auto">🤖 auto</span></td><td><span class="badge b-ok">Approved</span></td><td></td></tr>
+                <tr><td>INV-2026-00018</td><td class="hide-sm">Atlas Cleaning</td><td class="r">3,915.400</td><td><span class="badge b-auto">🤖 auto</span></td><td><span class="badge b-pend">Pending</span></td><td><span class="mini-btn p">Approve</span> <span class="mini-btn">Reject</span></td></tr>
+                <tr><td>F-0912</td><td class="hide-sm">Carthage Logistics</td><td class="r">1,190.000</td><td><span class="badge">manual</span></td><td><span class="badge b-pend">Pending</span></td><td><span class="mini-btn p">Approve</span> <span class="mini-btn">Reject</span></td></tr>
+              </table>
+              <div class="toast"><span class="pin" style="top:-10px;left:-10px">3</span>✓ INV-2026-00017 approved · logged in audit trail</div>
+            </div>
+          </div>
+          <p class="mock-note">Illustrative mockup with synthetic data. The real demo video is recorded from the running application.</p>
+        </div>
+        <div>
+          <ol class="script">
+            <li><b>Staff find what's low</b>Search by name or SKU and filter low stock. Staff can record deliveries, but can't change prices.</li>
+            <li><b>Managers approve invoices</b>Invoices from the automation arrive tagged 🤖 and wait for a one-click decision.</li>
+            <li><b>Every action is traced</b>The admin opens the audit log and sees who approved what, and when.</li>
+          </ol>
+          <div class="result"><b>Before:</b> stock in 3 Excel files, approvals by email.<br><b>After:</b> one screen, clear permissions, full history.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. Analytics -->
+  <section class="slide">
+    <div class="inner">
+      <p class="eyebrow" style="color:var(--c-data)">Service 3: Data analytics</p>
+      <h2>From a messy export to a decision-ready report</h2>
+      <p class="lead">Send us a CSV from Excel, your ERP or your POS. You get clean data, verified KPIs and a two-page management report.</p>
+      <div class="flow" style="--accent:var(--c-data)">
+        <div class="step"><span class="n">01</span><b>Upload</b><span>Any sales or stock CSV</span></div>
+        <div class="arrow">→</div>
+        <div class="step"><span class="n">02</span><b>Clean</b><span>Duplicates, dates, decimals, gaps: every fix logged</span></div>
+        <div class="arrow">→</div>
+        <div class="step"><span class="n">03</span><b>Measure</b><span>KPIs checked against hand calculations</span></div>
+        <div class="arrow">→</div>
+        <div class="step"><span class="n">04</span><b>Report</b><span>Dashboard + monthly PDF</span></div>
+      </div>
+      <div class="grid g3">
+        <div class="card data"><div class="bar"></div><h3>Where are sales declining?</h3><p>Products, categories and regions down vs the previous quarter.</p></div>
+        <div class="card data"><div class="bar"></div><h3>What isn't moving?</h3><p>Slow-moving products and days since their last sale.</p></div>
+        <div class="card data"><div class="bar"></div><h3>What needs attention?</h3><p>Suspicious quantities, returns and data-quality issues.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6b. Analytics demo -->
+  <section class="slide">
+    <div class="inner">
+      <p class="eyebrow" style="color:var(--c-data)">Demo · Data analytics</p>
+      <h2>Upload a CSV, get answers in a minute</h2>
+      <div class="demo">
+        <div class="shots">
+          <div class="win">
+            <div class="win-bar"><i></i><i></i><i></i><span class="url">localhost:8501 · OpsPilot Analytics · sales_messy.csv (24,000 rows)</span></div>
+            <div class="win-body">
+              <div class="metrics" style="position:relative">
+                <span class="pin" style="top:-10px;left:-10px">1</span>
+                <div class="metric"><span>Total revenue</span><b>8.63 M TND</b></div>
+                <div class="metric"><span>September 2026</span><b>656 K TND</b> <em>▼ 4.6%</em></div>
+                <div class="metric"><span>Orders</span><b>23,650</b></div>
+                <div class="metric"><span>Return rate</span><b>0.99%</b></div>
+              </div>
+              <div class="an-grid">
+                <div class="panel">
+                  <h4>Monthly revenue (K TND)</h4>
+                  <svg class="chart" viewBox="0 0 320 110" preserveAspectRatio="none" aria-label="Monthly revenue trending down from 773K to 656K TND">
+                    <line class="grid-l" x1="10" y1="20" x2="320" y2="20"/><line class="grid-l" x1="10" y1="55" x2="320" y2="55"/><line class="grid-l" x1="10" y1="90" x2="320" y2="90"/>
+                    <path class="area" d="M10,20.2 L37.3,33.7 L64.5,9.5 L91.8,32 L119.1,41.6 L146.4,45.5 L173.6,56.7 L200.9,52.2 L228.2,74.7 L255.5,88.3 L282.7,68 L310,86 L310,100 L10,100 Z"/>
+                    <path class="ln2" d="M10,20.2 L37.3,33.7 L64.5,9.5 L91.8,32 L119.1,41.6 L146.4,45.5 L173.6,56.7 L200.9,52.2 L228.2,74.7 L255.5,88.3 L282.7,68 L310,86"/>
+                    <text x="10" y="108">Oct 25</text><text x="285" y="108">Sep 26</text>
+                  </svg>
+                </div>
+                <div class="panel" style="position:relative">
+                  <span class="pin" style="top:-10px;left:-10px">2</span>
+                  <h4>Declining products (last 3 months vs previous 3)</h4>
+                  <table class="tbl">
+                    <tr><td>SKU-0004</td><td class="r">39.8K → 17.0K</td><td class="r low">−57%</td></tr>
+                    <tr><td>SKU-0022</td><td class="r">33.5K → 14.7K</td><td class="r low">−56%</td></tr>
+                    <tr><td>SKU-0003</td><td class="r">42.2K → 20.4K</td><td class="r low">−52%</td></tr>
+                    <tr><td>SKU-0028</td><td class="r">13.6K → 6.8K</td><td class="r low">−50%</td></tr>
+                  </table>
+                </div>
+                <div class="panel">
+                  <h4>Slow-moving (units in last 90 days)</h4>
+                  <table class="tbl">
+                    <tr><td>SKU-0031</td><td class="r">0 units</td><td class="r">115 days idle</td></tr>
+                    <tr><td>SKU-0016</td><td class="r">13 units</td><td class="r">42 days idle</td></tr>
+                    <tr><td>SKU-0012</td><td class="r">18 units</td><td class="r">89 days idle</td></tr>
+                  </table>
+                </div>
+                <div class="panel" style="position:relative">
+                  <span class="pin" style="top:-10px;left:-10px">3</span>
+                  <h4>Data issues found (1,966)</h4>
+                  <table class="tbl">
+                    <tr><td>Comma decimals</td><td class="r">712 converted</td></tr>
+                    <tr><td>DD/MM/YYYY dates</td><td class="r">474 converted</td></tr>
+                    <tr><td>Duplicate rows</td><td class="r">237 removed</td></tr>
+                    <tr><td>Abnormal quantities</td><td class="r low">69 to review</td></tr>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="mock-note">Figures come from a real run of the Phase 3 pipeline on synthetic data; the layout is illustrative.</p>
+        </div>
+        <div>
+          <ol class="script">
+            <li><b>Headline KPIs at a glance</b>Revenue, month-on-month change, orders and returns, calculated after cleaning.</li>
+            <li><b>Where sales are falling</b>The products that halved over the last quarter, ranked by impact.</li>
+            <li><b>What needs checking</b>Every automatic fix is logged; suspicious rows are excluded and listed for review.</li>
+          </ol>
+          <div class="result"><b>Before:</b> 2 days in Excel for the monthly report.<br><b>After:</b> upload → dashboard → 2-page PDF in about a minute.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. Architecture -->
+  <section class="slide">
+    <div class="inner">
+      <p class="eyebrow">Combined solution</p>
+      <h2>Three pieces, loosely connected</h2>
+      <p class="lead" style="margin-bottom:12px">Dashed lines are optional. Each service keeps working if another is switched off.</p>
+      <svg class="arch" viewBox="0 0 1000 380" role="img" aria-label="Architecture: files flow into automation, which optionally sends invoices to the internal tool; analytics reads the shared database.">
+        <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+        <!-- inputs -->
+        <rect class="box" x="10" y="40" width="170" height="80" rx="14"/>
+        <text class="lbl" x="95" y="75" text-anchor="middle">Supplier files</text>
+        <text class="sub" x="95" y="97" text-anchor="middle">CSV · email · PDF</text>
+        <rect class="box" x="10" y="260" width="170" height="80" rx="14"/>
+        <text class="lbl" x="95" y="295" text-anchor="middle">Sales exports</text>
+        <text class="sub" x="95" y="317" text-anchor="middle">Excel · ERP · POS</text>
+        <!-- automation -->
+        <rect class="box" x="250" y="30" width="210" height="100" rx="14" style="stroke:var(--c-auto);stroke-width:2"/>
+        <text class="lbl" x="355" y="72" text-anchor="middle">Automation</text>
+        <text class="sub" x="355" y="94" text-anchor="middle">validate · save · alert</text>
+        <!-- tool -->
+        <rect class="box" x="540" y="30" width="210" height="100" rx="14" style="stroke:var(--c-tool);stroke-width:2"/>
+        <text class="lbl" x="645" y="72" text-anchor="middle">Internal tool</text>
+        <text class="sub" x="645" y="94" text-anchor="middle">inventory · invoices · roles</text>
+        <!-- db -->
+        <rect class="box" x="540" y="165" width="210" height="70" rx="14"/>
+        <text class="lbl" x="645" y="198" text-anchor="middle">PostgreSQL</text>
+        <text class="sub" x="645" y="218" text-anchor="middle">one source of truth</text>
+        <!-- analytics -->
+        <rect class="box" x="540" y="260" width="210" height="100" rx="14" style="stroke:var(--c-data);stroke-width:2"/>
+        <text class="lbl" x="645" y="302" text-anchor="middle">Analytics</text>
+        <text class="sub" x="645" y="324" text-anchor="middle">clean · KPIs · reports</text>
+        <!-- outputs -->
+        <rect class="box" x="820" y="40" width="170" height="80" rx="14"/>
+        <text class="lbl" x="905" y="75" text-anchor="middle">Your team</text>
+        <text class="sub" x="905" y="97" text-anchor="middle">approve · search · act</text>
+        <rect class="box" x="820" y="270" width="170" height="80" rx="14"/>
+        <text class="lbl" x="905" y="305" text-anchor="middle">Management</text>
+        <text class="sub" x="905" y="327" text-anchor="middle">dashboards · PDF</text>
+        <!-- lines -->
+        <path class="ln" d="M180 80 H246" marker-end="url(#a)"/>
+        <path class="ln opt" d="M460 80 H536" marker-end="url(#a)"/>
+        <path class="ln" d="M645 130 V161" marker-end="url(#a)"/>
+        <path class="ln opt" d="M645 235 V256" marker-end="url(#a)"/>
+        <path class="ln" d="M180 300 H536" marker-end="url(#a)"/>
+        <path class="ln" d="M750 80 H816" marker-end="url(#a)"/>
+        <path class="ln" d="M750 310 H816" marker-end="url(#a)"/>
+        <path class="ln opt" d="M355 130 V200 H536" marker-end="url(#a)"/>
+        <text class="sub" x="498" y="70" text-anchor="middle">API</text>
+      </svg>
+    </div>
+  </section>
+
+  <!-- 8. Stack -->
+  <section class="slide">
+    <div class="inner">
+      <p class="eyebrow">Built with free, open-source tools</p>
+      <h2>0 TND infrastructure for the MVP</h2>
+      <p class="lead">Everything runs natively on one laptop. No subscriptions or cloud bills until a paying customer needs them.</p>
+      <div class="card">
+        <div class="stack-row"><div class="k" style="color:var(--c-auto)">Automation</div><div class="chips"><span class="chip">n8n (self-hosted)</span><span class="chip">Node.js</span><span class="chip">Python</span><span class="chip">Tesseract OCR</span><span class="chip">Ollama (optional)</span><span class="chip">Mailpit</span></div></div>
+        <div class="stack-row"><div class="k" style="color:var(--c-tool)">Internal tools</div><div class="chips"><span class="chip">Next.js</span><span class="chip">NestJS</span><span class="chip">Prisma</span><span class="chip">PostgreSQL</span><span class="chip">Tailwind</span><span class="chip">Jest</span></div></div>
+        <div class="stack-row"><div class="k" style="color:var(--c-data)">Data analytics</div><div class="chips"><span class="chip">pandas</span><span class="chip">Jupyter</span><span class="chip">Streamlit</span><span class="chip">Metabase OSS</span><span class="chip">Chart.js</span><span class="chip">matplotlib</span></div></div>
+        <div class="stack-row"><div class="k">Workspace</div><div class="chips"><span class="chip">VS Code</span><span class="chip">OBS Studio</span><span class="chip">LibreOffice</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. Roadmap -->
+  <section class="slide">
+    <div class="inner">
+      <p class="eyebrow">Delivery roadmap</p>
+      <h2>12 weeks, part-time</h2>
+      <p class="lead">One reusable foundation, three small independent demos, then real conversations with buyers.</p>
+      <div class="timeline">
+        <div class="phase"><div class="wk">Week 1</div><b>Phase 0 · Setup</b><span>Local stack, database, API &amp; frontend skeleton</span></div>
+        <div class="phase" style="--accent:var(--c-auto)"><div class="wk">Weeks 2–3</div><b>Phase 1 · Automation</b><span>Invoice import, validation, alerts, demo video</span></div>
+        <div class="phase" style="--accent:var(--c-tool)"><div class="wk">Weeks 4–6</div><b>Phase 2 · Internal tool</b><span>Login, roles, CRUD, stock, audit, tests</span></div>
+        <div class="phase" style="--accent:var(--c-data)"><div class="wk">Weeks 7–8</div><b>Phase 3 · Analytics</b><span>Cleaning, KPIs, report, dashboards</span></div>
+        <div class="phase"><div class="wk">Weeks 9–10</div><b>Phase 4 · Connect</b><span>Optional links between the three services</span></div>
+        <div class="phase" style="--accent:var(--ok)"><div class="wk">Weeks 11–12</div><b>Phase 5 · Sell</b><span>Demos, service pages, outreach, paid pilot</span></div>
+      </div>
+      <p class="muted" style="margin-top:20px;font-size:15px">First milestone: Phase 1 demo in front of real prospects. Don't wait for all three.</p>
+    </div>
+  </section>
+
+  <!-- 10. How we work -->
+  <section class="slide">
+    <div class="inner">
+      <p class="eyebrow">How we work with you</p>
+      <h2>Start small. Prove value. Then grow.</h2>
+      <div class="flow" style="margin-top:24px">
+        <div class="step"><span class="n">01 · 30 min</span><b>Discover</b><span>One repetitive process: who does it, how long it takes, what goes wrong</span></div>
+        <div class="arrow">→</div>
+        <div class="step"><span class="n">02 · 1 week</span><b>Demonstrate</b><span>A working demo on your own (anonymised) sample data</span></div>
+        <div class="arrow">→</div>
+        <div class="step"><span class="n">03 · 2–4 weeks</span><b>Paid pilot</b><span>Fixed scope, fixed price, success criteria agreed upfront</span></div>
+        <div class="arrow">→</div>
+        <div class="step"><span class="n">04 · ongoing</span><b>Extend</b><span>More processes, another service, or a support plan</span></div>
+      </div>
+      <p class="quote" style="margin-top:28px">"Rather than proposing a large software project upfront, we identify one repetitive process and demonstrate a practical solution."</p>
+    </div>
+  </section>
+
+  <!-- 11. Principles -->
+  <section class="slide">
+    <div class="inner">
+      <p class="eyebrow">Our commitments</p>
+      <h2>Reliable before clever</h2>
+      <div class="grid g2" style="margin-top:20px">
+        <div class="card"><h3>Rules first, AI second</h3><p>Every pipeline works with plain validation rules. AI only suggests; the rules decide. If a model is unavailable, the system keeps running.</p></div>
+        <div class="card"><h3>Your data stays yours</h3><p>Synthetic data for demos. Clear written agreement on data ownership, hosting and deletion for every project.</p></div>
+        <div class="card"><h3>Honest about infrastructure</h3><p>Free tiers are for prototypes. Production gets paid hosting, backups and monitoring, priced transparently.</p></div>
+        <div class="card"><h3>Proven with numbers</h3><p>Test results, hand-checked KPIs and a measured before/after for every delivery.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12. CTA -->
+  <section class="slide">
+    <div class="inner">
+      <p class="eyebrow">Next step</p>
+      <h1 style="max-width:900px">Which task takes your team too much time?</h1>
+      <p class="lead">A 20-minute conversation about one operational process. If there's a fit, you'll see a working demo on your own sample data within a week.</p>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+        <a class="cta" href="mailto:?subject=OpsPilot%20AI%20-%2020-minute%20call">Book a 20-minute call →</a>
+        <a class="btn" style="display:inline-flex;align-items:center;height:48px;padding:0 18px;text-decoration:none" href="services.html">Read the detailed service guide</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<nav class="nav" aria-label="Slide navigation">
+  <div class="brand"><div class="logo">O</div><span>OpsPilot AI</span></div>
+  <div class="dots" id="dots"></div>
+  <div class="ctrl">
+    <a class="btn guide" href="services.html" title="Services guide" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none">📘 <span class="guide-label">Services guide</span></a>
+    <button class="btn" id="lang" title="Français / English (L)" aria-label="Français / English" style="font-weight:600">FR</button>
+    <button class="btn" id="theme" title="Toggle light/dark (T)" aria-label="Toggle theme">◐</button>
+    <button class="btn" id="prev" aria-label="Previous slide">←</button>
+    <span class="count" id="count"></span>
+    <button class="btn" id="next" aria-label="Next slide">→</button>
+  </div>
+</nav>
+
+<script>
+  /* ---------- language switch (EN / FR) ---------- */
+  const FR = {"Services guide": "Guide des services",  "AI & Business Technology Services": "Services IA & technologies d'entreprise", "Less admin, clearer numbers. We help growing distribution businesses automate repetitive work, run their operations in simple custom tools, and see what their data is telling them.": "Moins d'administratif, des chiffres plus clairs. Nous aidons les entreprises de distribution en croissance à automatiser les tâches répétitives, à piloter leurs opérations avec des outils sur mesure simples et à comprendre ce que disent leurs données.", "⚙️ Automation": "⚙️ Automatisation", "🧰 Internal tools": "🧰 Outils internes", "📊 Data analytics": "📊 Analyse de données", "Use the arrow keys, swipe, or the buttons below · F for full screen · L for français": "Utilisez les flèches, balayez l'écran ou les boutons ci-dessous · F pour le plein écran · L pour la langue", "The problem": "Le problème", "Growing distributors run on manual work": "Les distributeurs en croissance fonctionnent encore à la main", "Teams spend days on tasks that a reliable system could do in minutes, and errors are found too late.": "Les équipes passent des jours sur des tâches qu'un système fiable ferait en quelques minutes, et les erreurs sont découvertes trop tard.", "Invoices typed by hand": "Factures saisies à la main", "Supplier invoices re-entered line by line, with VAT and totals checked by eye.": "Factures fournisseurs ressaisies ligne par ligne, TVA et totaux vérifiés à l'œil.", "Stock in spreadsheets": "Stock dans des tableurs", "Several Excel files, no single truth, no record of who changed what.": "Plusieurs fichiers Excel, aucune version de référence, aucune trace de qui a modifié quoi.", "Reports take days": "Des rapports qui prennent des jours", "The monthly report arrives late, and declining products are noticed after the damage is done.": "Le rapport mensuel arrive en retard, et les produits en baisse sont repérés une fois le mal fait.", "The offer": "L'offre", "One brand · three independent services": "Une marque · trois services indépendants", "Buy only what solves today's problem. Combine them later if it makes sense.": "Achetez uniquement ce qui résout le problème d'aujourd'hui. Combinez-les plus tard si c'est utile.", "Automation": "Automatisation", "Connect apps and remove repetitive workflows: invoices, emails, CSV imports, alerts.": "Connecter les applications et supprimer les tâches répétitives : factures, e-mails, imports CSV, alertes.", "Buy separately": "Achat séparé possible", "Internal tools": "Outils internes", "Custom business applications: inventory, invoice approval, roles and audit trail.": "Applications métier sur mesure : inventaire, validation des factures, rôles et journal d'audit.", "Data analytics": "Analyse de données", "Clean data, KPIs, dashboards and monthly reports that show what needs attention.": "Données nettoyées, KPI, tableaux de bord et rapports mensuels qui montrent ce qui demande votre attention.", "Optional combined project:": "Projet combiné optionnel :", "automation feeds the application → analytics reads the same data": "l'automatisation alimente l'application → l'analyse lit les mêmes données", "Service 1: Automation": "Service 1 : Automatisation", "Supplier invoices, checked and recorded automatically": "Factures fournisseurs vérifiées et enregistrées automatiquement", "Rules first, AI second. Every record is validated; nothing questionable reaches your books silently.": "Les règles d'abord, l'IA ensuite. Chaque enregistrement est validé ; rien de douteux n'entre dans votre comptabilité sans être signalé.", "Receive": "Recevoir", "CSV, email or PDF dropped in an inbox folder": "CSV, e-mail ou PDF déposé dans un dossier de réception", "Extract": "Extraire", "Read fields; optional OCR & local AI for scans": "Lecture des champs ; OCR et IA locale en option pour les scans", "Validate": "Valider", "Dates, VAT, totals, currency, duplicates": "Dates, TVA, totaux, devise, doublons", "Save": "Enregistrer", "Verified records in the database; errors quarantined": "Données vérifiées en base ; erreurs mises en quarantaine", "Alert": "Alerter", "Summary email with what needs attention": "E-mail récapitulatif avec les points à traiter", "Seconds": "Secondes", "to check a 50-invoice file, instead of hours by hand": "pour vérifier un fichier de 50 factures, au lieu d'heures à la main", "of rejected rows explained in plain language": "des lignes rejetées expliquées en langage clair", "duplicates: the same invoice is never recorded twice": "doublon : une même facture n'est jamais enregistrée deux fois", "Demo · Automation": "Démo · Automatisation", "A messy invoice file, processed in one drop": "Un fichier de factures désordonné, traité en un seul dépôt", "localhost:5678 · n8n · Supplier invoice import": "localhost:5678 · n8n · Import des factures fournisseurs", "Inbox": "Réception", "file added": "fichier ajouté", "Read CSV": "Lire le CSV", "51 rows": "51 lignes", "10 rules": "10 règles", "Save valid": "Enregistrer", "45 saved · 1 dup": "45 enregistrées · 1 doublon", "Rejections": "Rejets", "5 rows": "5 lignes", "Summary": "Récapitulatif", "email": "e-mail", "Execution #128 · succeeded in 3.1 s": "Exécution n° 128 · réussie en 3,1 s", "localhost:8025 · Mailpit inbox": "localhost:8025 · Boîte de réception Mailpit", "From": "De", "OpsPilot Automation": "Automatisation OpsPilot", "Subject": "Objet", "[OpsPilot] invoices_0915.csv: 45 saved, 5 rejected, 1 duplicate": "[OpsPilot] invoices_0915.csv : 45 enregistrées, 5 rejetées, 1 doublon", "Invoice import summary": "Récapitulatif de l'import des factures", "Rows read: 51 · Saved: 45 (total 612,480.315 TND)": "Lignes lues : 51 · Enregistrées : 45 (total 612 480,315 TND)", "Rejected: 5 · Duplicates skipped: 1": "Rejetées : 5 · Doublons ignorés : 1", "Needs attention": "À traiter", "Row 9 (INV-2026-00008): invoice_date \"31/02/2026\" is not a valid date": "Ligne 9 (INV-2026-00008) : la date « 31/02/2026 » n'est pas valide", "Row 17 (INV-2026-00016): amount_ttc does not equal amount_ht + vat_amount": "Ligne 17 (INV-2026-00016) : le montant TTC n'est pas égal au HT + TVA", "Row 33 (INV-2026-00032): supplier_tax_id is missing": "Ligne 33 (INV-2026-00032) : le matricule fiscal du fournisseur est manquant", "Illustrative mockup with synthetic data. The real demo video is recorded from the running workflow.": "Maquette illustrative avec des données fictives. La vraie vidéo de démo est enregistrée à partir du workflow en fonctionnement.", "Drop the file": "Déposer le fichier", "A supplier CSV with 51 invoices lands in the inbox folder, or arrives as an email attachment.": "Un CSV fournisseur de 51 factures arrive dans le dossier de réception, ou en pièce jointe d'un e-mail.", "Rules check every row": "Les règles vérifient chaque ligne", "Dates, VAT maths, totals, currency, missing fields and duplicates, with no human retyping.": "Dates, calcul de TVA, totaux, devise, champs manquants et doublons, sans aucune ressaisie.", "The team gets a summary": "L'équipe reçoit un récapitulatif", "Good invoices are saved; the 5 problems arrive with a plain-language reason, ready to fix.": "Les bonnes factures sont enregistrées ; les 5 problèmes arrivent avec une explication claire, prêts à être corrigés.", "Before:": "Avant :", "~4 min per invoice typed and checked by hand.": "~4 min par facture saisie et vérifiée à la main.", "After:": "Après :", "only the 5 flagged rows need a person.": "seules les 5 lignes signalées demandent une intervention humaine.", "Service 2: Internal tools": "Service 2 : Outils internes", "An inventory & invoice manager your team actually uses": "Une gestion de stock et de factures que votre équipe utilise vraiment", "A secure web application shaped around your process instead of the other way round.": "Une application web sécurisée, construite autour de votre façon de travailler, et non l'inverse.", "Login & roles": "Connexion & rôles", "Admin, manager and staff each see and do only what they should.": "Administrateur, responsable et employé ne voient et ne font que ce qui les concerne.", "Search & CRUD": "Recherche & gestion", "Products, suppliers and invoices with fast search and validation.": "Produits, fournisseurs et factures, avec recherche rapide et contrôles de saisie.", "Stock movements": "Mouvements de stock", "Receipts and shipments update stock safely and never go negative.": "Les entrées et sorties mettent à jour le stock en toute sécurité, sans jamais passer en négatif.", "Audit trail": "Journal d'audit", "Every change: who, what and when, ready for any review.": "Chaque modification : qui, quoi et quand, prête pour tout contrôle.", "Low-stock and overdue-invoice dashboard": "Tableau de bord stock bas et factures en retard", "Invoice approval workflow": "Circuit de validation des factures", "Automated permission & validation tests": "Tests automatisés des droits et des contrôles", "API documentation included": "Documentation de l'API incluse", "Demo · Internal tool": "Démo · Outil interne", "Three roles, one source of truth": "Trois rôles, une seule source de vérité", "localhost:3000/products · signed in as Sami (Staff)": "localhost:3000/products · connecté : Sami (Employé)", "📊 Dashboard": "📊 Tableau de bord", "📦 Products": "📦 Produits", "🧾 Invoices": "🧾 Factures", "🏭 Suppliers": "🏭 Fournisseurs", "🔒 Audit log": "🔒 Journal d'audit", "🔍 juice": "🔍 jus", "Low stock only": "Stock bas uniquement", "All categories": "Toutes catégories", "Product": "Produit", "Supplier": "Fournisseur", "Reorder at": "Seuil", "Orange juice 1L": "Jus d'orange 1L", "Apple juice 25cl": "Jus de pomme 25cl", "Mango juice 1L": "Jus de mangue 1L", "3 of 120 products below their reorder level": "3 produits sur 120 sous leur seuil de réapprovisionnement", "localhost:3000/invoices · signed in as Mehdi (Manager)": "localhost:3000/invoices · connecté : Mehdi (Responsable)", "Invoice": "Facture", "Status": "Statut", "Approved": "Validée", "Pending": "En attente", "Approve": "Valider", "Reject": "Rejeter", "manual": "manuelle", "✓ INV-2026-00017 approved · logged in audit trail": "✓ INV-2026-00017 validée · enregistrée dans le journal d'audit", "Illustrative mockup with synthetic data. The real demo video is recorded from the running application.": "Maquette illustrative avec des données fictives. La vraie vidéo de démo est enregistrée à partir de l'application en fonctionnement.", "Staff find what's low": "Les employés repèrent les stocks bas", "Search by name or SKU and filter low stock. Staff can record deliveries, but can't change prices.": "Recherche par nom ou référence et filtre « stock bas ». Les employés enregistrent les livraisons mais ne peuvent pas modifier les prix.", "Managers approve invoices": "Les responsables valident les factures", "Invoices from the automation arrive tagged 🤖 and wait for a one-click decision.": "Les factures issues de l'automatisation arrivent marquées 🤖 et attendent une décision en un clic.", "Every action is traced": "Chaque action est tracée", "The admin opens the audit log and sees who approved what, and when.": "L'administrateur ouvre le journal d'audit et voit qui a validé quoi, et quand.", "stock in 3 Excel files, approvals by email.": "stock réparti dans 3 fichiers Excel, validations par e-mail.", "one screen, clear permissions, full history.": "un seul écran, des droits clairs, un historique complet.", "Service 3: Data analytics": "Service 3 : Analyse de données", "From a messy export to a decision-ready report": "D'un export désordonné à un rapport prêt pour la décision", "Send us a CSV from Excel, your ERP or your POS. You get clean data, verified KPIs and a two-page management report.": "Envoyez-nous un CSV issu d'Excel, de votre ERP ou de votre caisse. Vous recevez des données propres, des KPI vérifiés et un rapport de gestion de deux pages.", "Upload": "Importer", "Any sales or stock CSV": "Tout CSV de ventes ou de stock", "Clean": "Nettoyer", "Duplicates, dates, decimals, gaps: every fix logged": "Doublons, dates, décimales, valeurs manquantes : chaque correction est tracée", "Measure": "Mesurer", "KPIs checked against hand calculations": "KPI vérifiés par rapport à des calculs manuels", "Report": "Rapport", "Dashboard + monthly PDF": "Tableau de bord + PDF mensuel", "Where are sales declining?": "Où les ventes baissent-elles ?", "Products, categories and regions down vs the previous quarter.": "Produits, catégories et régions en baisse par rapport au trimestre précédent.", "What isn't moving?": "Qu'est-ce qui ne se vend pas ?", "Slow-moving products and days since their last sale.": "Produits à faible rotation et nombre de jours depuis leur dernière vente.", "What needs attention?": "Qu'est-ce qui demande votre attention ?", "Suspicious quantities, returns and data-quality issues.": "Quantités suspectes, retours et problèmes de qualité des données.", "Demo · Data analytics": "Démo · Analyse de données", "Upload a CSV, get answers in a minute": "Importez un CSV, obtenez des réponses en une minute", "localhost:8501 · OpsPilot Analytics · sales_messy.csv (24,000 rows)": "localhost:8501 · OpsPilot Analytics · sales_messy.csv (24 000 lignes)", "Total revenue": "Chiffre d'affaires total", "8.63 M TND": "8,63 M TND", "September 2026": "Septembre 2026", "Orders": "Commandes", "Return rate": "Taux de retour", "Monthly revenue (K TND)": "Chiffre d'affaires mensuel (K TND)", "Monthly revenue trending down from 773K to 656K TND": "Chiffre d'affaires mensuel en baisse, de 773K à 656K TND", "Oct 25": "Oct. 25", "Sep 26": "Sept. 26", "Declining products (last 3 months vs previous 3)": "Produits en baisse (3 derniers mois vs 3 précédents)", "39.8K → 17.0K": "39,8K → 17,0K", "33.5K → 14.7K": "33,5K → 14,7K", "42.2K → 20.4K": "42,2K → 20,4K", "13.6K → 6.8K": "13,6K → 6,8K", "Slow-moving (units in last 90 days)": "Faible rotation (unités sur 90 jours)", "0 units": "0 unité", "115 days idle": "115 jours sans vente", "13 units": "13 unités", "42 days idle": "42 jours sans vente", "18 units": "18 unités", "89 days idle": "89 jours sans vente", "Data issues found (1,966)": "Problèmes de données détectés (1 966)", "Comma decimals": "Décimales avec virgule", "712 converted": "712 converties", "DD/MM/YYYY dates": "Dates JJ/MM/AAAA", "474 converted": "474 converties", "Duplicate rows": "Lignes en double", "237 removed": "237 supprimées", "Abnormal quantities": "Quantités anormales", "69 to review": "69 à vérifier", "Figures come from a real run of the Phase 3 pipeline on synthetic data; the layout is illustrative.": "Les chiffres proviennent d'une exécution réelle du pipeline de la phase 3 sur des données fictives ; la mise en page est illustrative.", "Headline KPIs at a glance": "Les KPI clés en un coup d'œil", "Revenue, month-on-month change, orders and returns, calculated after cleaning.": "Chiffre d'affaires, évolution mensuelle, commandes et retours, calculés après nettoyage.", "Where sales are falling": "Là où les ventes chutent", "The products that halved over the last quarter, ranked by impact.": "Les produits dont les ventes ont été divisées par deux au dernier trimestre, classés par impact.", "What needs checking": "Ce qu'il faut vérifier", "Every automatic fix is logged; suspicious rows are excluded and listed for review.": "Chaque correction automatique est tracée ; les lignes suspectes sont exclues et listées pour vérification.", "2 days in Excel for the monthly report.": "2 jours sur Excel pour le rapport mensuel.", "upload → dashboard → 2-page PDF in about a minute.": "import → tableau de bord → PDF de 2 pages en une minute environ.", "Combined solution": "Solution combinée", "Three pieces, loosely connected": "Trois briques, faiblement couplées", "Dashed lines are optional. Each service keeps working if another is switched off.": "Les liens en pointillés sont optionnels. Chaque service continue de fonctionner si un autre est arrêté.", "Architecture: files flow into automation, which optionally sends invoices to the internal tool; analytics reads the shared database.": "Architecture : les fichiers passent par l'automatisation, qui peut envoyer les factures à l'outil interne ; l'analyse lit la base de données commune.", "Supplier files": "Fichiers fournisseurs", "CSV · email · PDF": "CSV · e-mail · PDF", "Sales exports": "Exports de ventes", "Excel · ERP · POS": "Excel · ERP · caisse", "validate · save · alert": "valider · enregistrer · alerter", "Internal tool": "Outil interne", "inventory · invoices · roles": "stock · factures · rôles", "one source of truth": "une seule source de vérité", "Analytics": "Analyse", "clean · KPIs · reports": "nettoyage · KPI · rapports", "Your team": "Votre équipe", "approve · search · act": "valider · chercher · agir", "Management": "Direction", "dashboards · PDF": "tableaux de bord · PDF", "Built with free, open-source tools": "Construit avec des outils gratuits et open source", "0 TND infrastructure for the MVP": "0 TND d'infrastructure pour le MVP", "Everything runs natively on one laptop. No subscriptions or cloud bills until a paying customer needs them.": "Tout tourne en local sur un seul ordinateur portable. Aucun abonnement ni facture cloud tant qu'un client payant n'en a pas besoin.", "n8n (self-hosted)": "n8n (auto-hébergé)", "Ollama (optional)": "Ollama (optionnel)", "Workspace": "Poste de travail", "Delivery roadmap": "Feuille de route", "12 weeks, part-time": "12 semaines, à temps partiel", "One reusable foundation, three small independent demos, then real conversations with buyers.": "Une base réutilisable, trois petites démos indépendantes, puis de vraies conversations avec des clients.", "Week 1": "Semaine 1", "Phase 0 · Setup": "Phase 0 · Installation", "Local stack, database, API & frontend skeleton": "Environnement local, base de données, squelette API et frontend", "Weeks 2–3": "Semaines 2–3", "Phase 1 · Automation": "Phase 1 · Automatisation", "Invoice import, validation, alerts, demo video": "Import de factures, validation, alertes, vidéo de démo", "Weeks 4–6": "Semaines 4–6", "Phase 2 · Internal tool": "Phase 2 · Outil interne", "Login, roles, CRUD, stock, audit, tests": "Connexion, rôles, gestion, stock, audit, tests", "Weeks 7–8": "Semaines 7–8", "Phase 3 · Analytics": "Phase 3 · Analyse", "Cleaning, KPIs, report, dashboards": "Nettoyage, KPI, rapport, tableaux de bord", "Weeks 9–10": "Semaines 9–10", "Phase 4 · Connect": "Phase 4 · Connexion", "Optional links between the three services": "Liens optionnels entre les trois services", "Weeks 11–12": "Semaines 11–12", "Phase 5 · Sell": "Phase 5 · Vente", "Demos, service pages, outreach, paid pilot": "Démos, pages de services, prospection, pilote payant", "First milestone: Phase 1 demo in front of real prospects. Don't wait for all three.": "Premier jalon : la démo de la phase 1 devant de vrais prospects. N'attendez pas d'avoir les trois.", "How we work with you": "Notre façon de travailler", "Start small. Prove value. Then grow.": "Commencer petit. Prouver la valeur. Puis grandir.", "01 · 30 min": "01 · 30 min", "Discover": "Découvrir", "One repetitive process: who does it, how long it takes, what goes wrong": "Un processus répétitif : qui le fait, combien de temps il prend, ce qui coince", "02 · 1 week": "02 · 1 semaine", "Demonstrate": "Démontrer", "A working demo on your own (anonymised) sample data": "Une démo fonctionnelle sur un échantillon (anonymisé) de vos propres données", "03 · 2–4 weeks": "03 · 2–4 semaines", "Paid pilot": "Pilote payant", "Fixed scope, fixed price, success criteria agreed upfront": "Périmètre fixe, prix fixe, critères de réussite définis à l'avance", "04 · ongoing": "04 · en continu", "Extend": "Étendre", "More processes, another service, or a support plan": "D'autres processus, un autre service ou un contrat de support", "\"Rather than proposing a large software project upfront, we identify one repetitive process and demonstrate a practical solution.\"": "« Plutôt que de proposer d'emblée un grand projet logiciel, nous identifions un processus répétitif et démontrons une solution concrète. »", "Our commitments": "Nos engagements", "Reliable before clever": "Fiable avant d'être sophistiqué", "Rules first, AI second": "Les règles d'abord, l'IA ensuite", "Every pipeline works with plain validation rules. AI only suggests; the rules decide. If a model is unavailable, the system keeps running.": "Chaque traitement fonctionne avec de simples règles de validation. L'IA suggère, les règles décident. Si un modèle est indisponible, le système continue de tourner.", "Your data stays yours": "Vos données restent les vôtres", "Synthetic data for demos. Clear written agreement on data ownership, hosting and deletion for every project.": "Données fictives pour les démos. Un accord écrit et clair sur la propriété, l'hébergement et la suppression des données pour chaque projet.", "Honest about infrastructure": "Transparents sur l'infrastructure", "Free tiers are for prototypes. Production gets paid hosting, backups and monitoring, priced transparently.": "Les offres gratuites servent aux prototypes. La production a droit à un hébergement payant, des sauvegardes et une supervision, au prix annoncé clairement.", "Proven with numbers": "Prouvé par les chiffres", "Test results, hand-checked KPIs and a measured before/after for every delivery.": "Résultats de tests, KPI vérifiés à la main et un avant/après mesuré pour chaque livraison.", "Next step": "Prochaine étape", "Which task takes your team too much time?": "Quelle tâche prend trop de temps à votre équipe ?", "A 20-minute conversation about one operational process. If there's a fit, you'll see a working demo on your own sample data within a week.": "Un échange de 20 minutes sur un processus opérationnel. Si cela correspond, vous verrez une démo fonctionnelle sur vos propres données en une semaine.", "Book a 20-minute call →": "Réserver un appel de 20 minutes →", "Read the detailed service guide": "Lire le guide détaillé des services", "Slide navigation": "Navigation entre les diapositives", "Toggle light/dark (T)": "Mode clair/sombre (T)", "Toggle theme": "Changer de thème", "Previous slide": "Diapositive précédente", "Next slide": "Diapositive suivante" };
+  const i18n = { text: [], attrs: [] };
+  (function collect() {
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    while (walker.nextNode()) {
+      const n = walker.currentNode;
+      const key = n.nodeValue.replace(/\s+/g, ' ').trim();
+      if (!FR[key]) continue;
+      const [, lead, trail] = n.nodeValue.match(/^(\s*)[\s\S]*?(\s*)$/);
+      i18n.text.push({ n, en: n.nodeValue, fr: lead + FR[key] + trail });
+    }
+    document.querySelectorAll('[aria-label],[title]').forEach((el) => {
+      ['aria-label', 'title'].forEach((a) => {
+        const v = el.getAttribute(a);
+        if (v && FR[v]) i18n.attrs.push({ el, a, en: v, fr: FR[v] });
+      });
+    });
+  })();
+
+  let lang = 'en';
+  function setLang(l) {
+    lang = l === 'fr' ? 'fr' : 'en';
+    document.documentElement.lang = lang;
+    i18n.text.forEach((t) => { t.n.nodeValue = t[lang]; });
+    i18n.attrs.forEach((t) => t.el.setAttribute(t.a, t[lang]));
+    document.getElementById('lang').textContent = lang === 'fr' ? 'EN' : 'FR';
+    document.querySelectorAll('.dot').forEach((d, k) =>
+      d.setAttribute('aria-label', (lang === 'fr' ? 'Aller à la diapositive ' : 'Go to slide ') + (k + 1)));
+    const cta = document.querySelector('a.cta');
+    if (cta) cta.href = 'mailto:?subject=' + encodeURIComponent(lang === 'fr' ? 'OpsPilot AI - appel de 20 minutes' : 'OpsPilot AI - 20-minute call');
+    document.querySelectorAll('a[href^="services.html"]').forEach((a) => { a.href = 'services.html?lang=' + lang; });
+    if (window.parent !== window) parent.postMessage({ type: 'opspilot-lang', lang }, '*');
+    try { localStorage.setItem('opspilot-lang', lang); } catch (e) {}
+  }
+</script>
+<script>
+  const slides = [...document.querySelectorAll('.slide')];
+  const dots = document.getElementById('dots');
+  const count = document.getElementById('count');
+  const progress = document.getElementById('progress');
+  let i = 0;
+
+  slides.forEach((_, k) => {
+    const b = document.createElement('button');
+    b.className = 'dot';
+    b.setAttribute('aria-label', `Go to slide ${k + 1}`);
+    b.onclick = () => go(k);
+    dots.appendChild(b);
+  });
+
+  function go(k) {
+    i = Math.max(0, Math.min(slides.length - 1, k));
+    slides.forEach((s, n) => s.classList.toggle('active', n === i));
+    [...dots.children].forEach((d, n) => d.classList.toggle('on', n === i));
+    count.textContent = `${i + 1} / ${slides.length}`;
+    progress.style.width = `${((i + 1) / slides.length) * 100}%`;
+    try { history.replaceState(null, '', `#${i + 1}`); } catch (e) {}
+  }
+
+  document.getElementById('prev').onclick = () => go(i - 1);
+  document.getElementById('next').onclick = () => go(i + 1);
+
+  const root = document.documentElement;
+  function toggleTheme() {
+    const dark = root.dataset.theme
+      ? root.dataset.theme === 'dark'
+      : matchMedia('(prefers-color-scheme: dark)').matches;
+    root.dataset.theme = dark ? 'light' : 'dark';
+    try { localStorage.setItem('opspilot-theme', root.dataset.theme); } catch (e) {}
+  }
+  try { const t = localStorage.getItem('opspilot-theme'); if (t) root.dataset.theme = t; } catch (e) {}
+  document.getElementById('theme').onclick = toggleTheme;
+
+  addEventListener('keydown', (e) => {
+    if (['ArrowRight', 'PageDown', ' '].includes(e.key)) { e.preventDefault(); go(i + 1); }
+    if (['ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); go(i - 1); }
+    if (e.key === 'Home') go(0);
+    if (e.key === 'End') go(slides.length - 1);
+    if (e.key.toLowerCase() === 'f') document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.();
+    if (e.key.toLowerCase() === 't') toggleTheme();
+  });
+
+  let x0 = null;
+  addEventListener('touchstart', (e) => { x0 = e.touches[0].clientX; }, { passive: true });
+  addEventListener('touchend', (e) => {
+    if (x0 === null) return;
+    const dx = e.changedTouches[0].clientX - x0;
+    if (Math.abs(dx) > 50) go(i + (dx < 0 ? 1 : -1));
+    x0 = null;
+  });
+
+  document.getElementById('lang').onclick = () => setLang(lang === 'fr' ? 'en' : 'fr');
+  addEventListener('keydown', (e) => { if (e.key.toLowerCase() === 'l') setLang(lang === 'fr' ? 'en' : 'fr'); });
+
+  let initialLang = new URLSearchParams(location.search).get('lang');
+  try { initialLang = initialLang || localStorage.getItem('opspilot-lang'); } catch (e) {}
+  go((parseInt(location.hash.slice(1), 10) || 1) - 1);
+  setLang(initialLang || (navigator.language || '').slice(0, 2));
+</script>
+<script>
+  /* ---------- bridge: lets index.html switch pages and keep language/theme in sync ---------- */
+  (function () {
+    if (window.parent === window) return;
+    document.documentElement.classList.add('embedded');
+    document.head.insertAdjacentHTML('beforeend', '<style>.embedded .nav .brand, .embedded .top .brand { display: none; }</style>');
+    const PAGES = { 'presentation.html': 'presentation', 'services.html': 'services' };
+    document.addEventListener('click', (e) => {
+      const a = e.target.closest('a[href]');
+      if (!a) return;
+      const href = a.getAttribute('href');
+      const page = PAGES[href.split(/[?#]/)[0]];
+      if (page) {
+        e.preventDefault();
+        parent.postMessage({ type: 'opspilot-open', page }, '*');
+      } else if (href.length > 1 && href.startsWith('#')) {
+        const target = document.getElementById(href.slice(1));
+        if (target) { e.preventDefault(); target.scrollIntoView({ behavior: 'smooth' }); }
+      }
+    });
+
+    const root = document.documentElement;
+    let lastTheme = root.dataset.theme;
+    new MutationObserver(() => {
+      if (root.dataset.theme === lastTheme) return;
+      lastTheme = root.dataset.theme;
+      parent.postMessage({ type: 'opspilot-theme', theme: lastTheme }, '*');
+    }).observe(root, { attributes: true, attributeFilter: ['data-theme'] });
+
+    addEventListener('message', (e) => {
+      const d = e.data || {};
+      if (d.type === 'opspilot-set-lang' && d.lang !== lang) setLang(d.lang);
+      if (d.type === 'opspilot-set-theme' && d.theme && d.theme !== root.dataset.theme) {
+        lastTheme = d.theme;
+        root.dataset.theme = d.theme;
+      }
+    });
+    parent.postMessage({ type: 'opspilot-lang', lang }, '*');
+    if (root.dataset.theme) parent.postMessage({ type: 'opspilot-theme', theme: root.dataset.theme }, '*');
+  })();
+</script>
+</body>
+</html>

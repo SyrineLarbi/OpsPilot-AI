@@ -1,0 +1,671 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpsPilot Services Guide</title>
+<meta name="description" content="A detailed guide to the three OpsPilot AI services, with worked examples: automation, internal tools and data analytics.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f7f7fb; --surface: #ffffff; --surface-2: #f0f1f8; --text: #141627; --muted: #5d6280; --line: #e2e4ef;
+    --brand: #4f46e5; --brand-soft: #eceafd;
+    --c-auto: #4f46e5; --c-auto-soft: #eceafd;
+    --c-tool: #0891b2; --c-tool-soft: #e0f5fa;
+    --c-data: #d97706; --c-data-soft: #fdf1df;
+    --ok: #059669; --ok-soft: #dcf5ec; --bad: #dc2626; --bad-soft: #fde8e8;
+    --shadow: 0 1px 2px rgba(20,22,39,.04), 0 8px 24px rgba(20,22,39,.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0e1020; --surface: #171a2e; --surface-2: #1e2238; --text: #eceef8; --muted: #9da3c4; --line: #2a2f4a;
+      --brand: #8b85ff; --brand-soft: #25234a;
+      --c-auto: #8b85ff; --c-auto-soft: #25234a; --c-tool: #22c3e6; --c-tool-soft: #0f2e38; --c-data: #f5a524; --c-data-soft: #3a2a10;
+      --ok: #34d399; --ok-soft: #0f3326; --bad: #f87171; --bad-soft: #3b1a1d;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0e1020; --surface: #171a2e; --surface-2: #1e2238; --text: #eceef8; --muted: #9da3c4; --line: #2a2f4a;
+    --brand: #8b85ff; --brand-soft: #25234a;
+    --c-auto: #8b85ff; --c-auto-soft: #25234a; --c-tool: #22c3e6; --c-tool-soft: #0f2e38; --c-data: #f5a524; --c-data-soft: #3a2a10;
+    --ok: #34d399; --ok-soft: #0f3326; --bad: #f87171; --bad-soft: #3b1a1d;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 76px; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
+  a { color: var(--brand); }
+
+  /* top nav */
+  .top { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+  .top .wrap { display: flex; align-items: center; gap: 16px; height: 60px; }
+  .brand { font-weight: 700; display: flex; align-items: center; gap: 8px; white-space: nowrap; text-decoration: none; color: var(--text); }
+  .logo { width: 24px; height: 24px; border-radius: 7px; background: var(--brand); color: #fff; display: grid; place-items: center; font-size: 12px; font-weight: 800; }
+  .links { display: flex; gap: 4px; overflow-x: auto; flex: 1; scrollbar-width: none; }
+  .links a { text-decoration: none; color: var(--muted); font-size: 14px; font-weight: 500; padding: 6px 10px; border-radius: 8px; white-space: nowrap; }
+  .links a:hover, .links a.on { background: var(--surface-2); color: var(--text); }
+  .tbtn { background: var(--surface); border: 1px solid var(--line); color: var(--text); border-radius: 9px; height: 34px; width: 34px; cursor: pointer; flex: 0 0 auto; }
+
+  /* hero */
+  header.hero { padding: 64px 0 36px; }
+  .eyebrow { font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--brand); margin: 0 0 12px; }
+  h1 { font-size: clamp(34px, 5.5vw, 56px); line-height: 1.05; letter-spacing: -.03em; margin: 0 0 16px; }
+  .lead { font-size: clamp(17px, 2vw, 20px); color: var(--muted); max-width: 720px; margin: 0; }
+
+  h2 { font-size: clamp(26px, 3.6vw, 38px); letter-spacing: -.02em; line-height: 1.12; margin: 0 0 10px; }
+  h3 { font-size: 20px; letter-spacing: -.01em; margin: 36px 0 12px; }
+  h4 { font-size: 16px; margin: 0 0 6px; }
+  section.svc { padding: 56px 0 24px; border-top: 1px solid var(--line); }
+  .muted { color: var(--muted); }
+
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px; box-shadow: var(--shadow); }
+  .grid { display: grid; gap: 14px; }
+  .g2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .g3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  @media (max-width: 820px) { .g3 { grid-template-columns: 1fr; } }
+  @media (max-width: 640px) { .g2 { grid-template-columns: 1fr; } }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 0; }
+  .chip { font-size: 13px; padding: 5px 12px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); }
+
+  .svc-head { display: flex; gap: 16px; align-items: flex-start; }
+  .svc-icon { width: 52px; height: 52px; border-radius: 14px; display: grid; place-items: center; font-size: 26px; flex: 0 0 auto; background: var(--accent-soft); }
+  .auto { --accent: var(--c-auto); --accent-soft: var(--c-auto-soft); }
+  .tool { --accent: var(--c-tool); --accent-soft: var(--c-tool-soft); }
+  .data { --accent: var(--c-data); --accent-soft: var(--c-data-soft); }
+  .svc .eyebrow { color: var(--accent); }
+
+  /* steps */
+  .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; counter-reset: st; }
+  .steps .card { padding: 16px; border-top: 3px solid var(--accent); counter-increment: st; }
+  .steps .card::before { content: "Step " counter(st); display: block; font-size: 12px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
+  .steps p { margin: 0; color: var(--muted); font-size: 14.5px; }
+  html[lang="fr"] .steps .card::before { content: "Étape " counter(st); }
+
+  /* problems */
+  .problems { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px 20px; }
+  .problems li { padding-left: 26px; position: relative; }
+  .problems li::before { content: "✕"; position: absolute; left: 0; color: var(--bad); font-weight: 700; }
+  .check { list-style: none; padding: 0; margin: 0; }
+  .check li { padding-left: 26px; position: relative; margin: 6px 0; }
+  .check li::before { content: "✓"; position: absolute; left: 0; color: var(--ok); font-weight: 700; }
+
+  /* example story */
+  .story { background: var(--accent-soft); border-radius: 16px; padding: 22px; margin-top: 8px; }
+  .story > p:first-child { margin-top: 0; }
+  .story .label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); }
+  .ba { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+  @media (max-width: 640px) { .ba { grid-template-columns: 1fr; } }
+  .ba .card { box-shadow: none; }
+  .ba .before h4 { color: var(--bad); } .ba .after h4 { color: var(--ok); }
+  .ba ul { margin: 6px 0 0; padding-left: 18px; color: var(--muted); font-size: 14.5px; }
+
+  /* tables */
+  .scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 12.5px; color: var(--muted); font-weight: 600; background: var(--surface-2); white-space: nowrap; }
+  tr:last-child td { border-bottom: 0; }
+  .mono { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 12.5px; }
+  .nowrap { white-space: nowrap; }
+  .r { text-align: right; font-variant-numeric: tabular-nums; }
+  tr.bad td { background: var(--bad-soft); }
+  td.bad, .bad-t { color: var(--bad); font-weight: 600; }
+  .ok-t { color: var(--ok); font-weight: 600; }
+  .caption { font-size: 13px; color: var(--muted); margin: 8px 2px 0; }
+
+  pre.out { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; overflow-x: auto; font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 12.5px; line-height: 1.6; margin: 0; white-space: pre; }
+
+  /* more examples */
+  .ex .card h4 { display: flex; gap: 8px; align-items: center; }
+  .ex dl { margin: 10px 0 0; display: grid; grid-template-columns: 74px 1fr; gap: 4px 8px; font-size: 14px; }
+  .ex dt { color: var(--accent); font-weight: 600; font-size: 12.5px; text-transform: uppercase; letter-spacing: .04em; padding-top: 2px; }
+  .ex dd { margin: 0; color: var(--muted); }
+
+  .pkg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+  @media (max-width: 820px) { .pkg { grid-template-columns: 1fr; } }
+  .pkg .card h4 { color: var(--accent); }
+  .pkg ul { margin: 6px 0 0; padding-left: 18px; color: var(--muted); font-size: 14.5px; }
+
+  /* overview table */
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; vertical-align: middle; }
+
+  /* timeline */
+  .tl { position: relative; margin: 10px 0 0; padding-left: 26px; }
+  .tl::before { content: ""; position: absolute; left: 7px; top: 6px; bottom: 6px; width: 2px; background: var(--line); }
+  .tl-item { position: relative; margin-bottom: 18px; }
+  .tl-item::before { content: ""; position: absolute; left: -25px; top: 6px; width: 14px; height: 14px; border-radius: 50%; background: var(--surface); border: 3px solid var(--c, var(--brand)); }
+  .tl-item b { display: block; }
+  .tl-item span { color: var(--muted); font-size: 14.5px; }
+
+  details { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; margin-bottom: 10px; }
+  summary { cursor: pointer; font-weight: 600; }
+  details p { margin: 10px 0 0; color: var(--muted); }
+
+  .cta { margin: 56px 0; text-align: center; padding: 44px 20px; border-radius: 20px; background: var(--brand-soft); }
+  .cta h2 { margin-bottom: 10px; }
+  .btn { display: inline-block; background: var(--brand); color: #fff; text-decoration: none; padding: 13px 22px; border-radius: 12px; font-weight: 600; margin: 6px; }
+  .btn.ghost { background: var(--surface); color: var(--text); border: 1px solid var(--line); }
+  .note { font-size: 13px; color: var(--muted); border-left: 3px solid var(--line); padding-left: 12px; margin: 14px 0 0; }
+  footer { padding: 24px 0 48px; color: var(--muted); font-size: 13px; text-align: center; }
+</style>
+</head>
+<body>
+
+<nav class="top">
+  <div class="wrap">
+    <a class="brand" href="#top"><span class="logo">O</span><span>OpsPilot AI</span></a>
+    <div class="links" id="links">
+      <a href="#overview">Overview</a>
+      <a href="#automation">Automation</a>
+      <a href="#tools">Internal tools</a>
+      <a href="#analytics">Analytics</a>
+      <a href="#combined">Combined</a>
+      <a href="#engagement">How we work</a>
+      <a href="#faq">FAQ</a>
+    </div>
+    <button class="tbtn" id="lang" title="Français / English (L)" aria-label="Français / English" style="width:auto;padding:0 10px;font-weight:600">FR</button>
+    <button class="tbtn" id="theme" aria-label="Toggle light or dark theme" title="Toggle theme">◐</button>
+  </div>
+</nav>
+
+<div class="wrap" id="top">
+
+<header class="hero">
+  <p class="eyebrow">Services guide</p>
+  <h1>Three services, explained with real examples</h1>
+  <p class="lead">OpsPilot AI helps growing distribution businesses spend less time on admin and more time on decisions. Each service below can be bought on its own. This guide explains what each one does, how it works, and what the result looks like on a typical day.</p>
+  <p class="note">All companies, people and figures in the examples are fictional and use synthetic data. Time savings are illustrative estimates; in a pilot we measure your real numbers together.</p>
+</header>
+
+<!-- ================= OVERVIEW ================= -->
+<section id="overview" style="padding-bottom:24px">
+  <h2>At a glance</h2>
+  <p class="muted">Pick the service that matches the problem you have today.</p>
+  <div class="scroll">
+    <table>
+      <tr><th></th><th>Automation</th><th>Internal tools</th><th>Data analytics</th></tr>
+      <tr><td><b>Solves</b></td><td>Repetitive data entry and copy-paste between systems</td><td>Processes run in Excel files, emails and paper</td><td>Not knowing what is really happening in the numbers</td></tr>
+      <tr><td><b>You get</b></td><td>A workflow that receives, checks, saves and alerts</td><td>A secure web app with roles and history</td><td>Clean data, KPIs, dashboards and a monthly report</td></tr>
+      <tr><td><b>Typical pilot</b></td><td class="nowrap">2–3 weeks</td><td class="nowrap">3–5 weeks</td><td class="nowrap">1–2 weeks</td></tr>
+      <tr><td><b>We need from you</b></td><td>10–50 sample files + your checking rules</td><td>Your current process + 1–2 key users</td><td>A data export (CSV/Excel) + your key questions</td></tr>
+      <tr><td><b>Proof it works</b></td><td>Test run on your files, with every rejected row explained</td><td>Permission and data-consistency tests</td><td>KPIs matched against your own manual figures</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ================= AUTOMATION ================= -->
+<section class="svc auto" id="automation">
+  <div class="svc-head">
+    <div class="svc-icon">⚙️</div>
+    <div>
+      <p class="eyebrow">Service 1</p>
+      <h2>Automation</h2>
+      <p class="muted" style="margin:0">Connect your apps and remove repetitive workflows. Information arrives, gets checked against your rules, lands in the right place, and the right person is told what needs attention.</p>
+      <div class="chips"><span class="chip">Supplier invoices</span><span class="chip">Order emails</span><span class="chip">CSV / Excel imports</span><span class="chip">Price lists</span><span class="chip">Alerts &amp; reminders</span></div>
+    </div>
+  </div>
+
+  <h3>Problems it solves</h3>
+  <ul class="problems">
+    <li>The same data typed twice: from a PDF or email into Excel, then into the accounting software</li>
+    <li>Errors found weeks later, such as wrong VAT, duplicate invoices or totals that don't add up</li>
+    <li>Staff time lost on copy-paste instead of supplier and customer follow-up</li>
+    <li>Nobody is alerted when something goes wrong, so problems pile up silently</li>
+  </ul>
+
+  <h3>How it works</h3>
+  <div class="steps">
+    <div class="card"><h4>Receive</h4><p>Files dropped in a folder, email attachments, or exports from another system.</p></div>
+    <div class="card"><h4>Extract</h4><p>Read the fields. For scanned documents, optional OCR or a local AI model suggests the values.</p></div>
+    <div class="card"><h4>Validate</h4><p>Your business rules check every record: dates, VAT, totals, currencies, mandatory fields, duplicates.</p></div>
+    <div class="card"><h4>Save</h4><p>Valid records go to the database or your application. Invalid ones are quarantined with a reason.</p></div>
+    <div class="card"><h4>Notify</h4><p>A summary by email or Telegram: how many were processed, and exactly what needs a person.</p></div>
+  </div>
+
+  <h3>Worked example: supplier invoice processing</h3>
+  <div class="story">
+    <p><span class="label">The situation</span><br>
+    <b>Medina Food Distribution</b> (fictional, 45 employees) receives about <b>300 supplier invoices a month</b> from 25 suppliers. An accounting assistant types each one into a spreadsheet, checks the VAT with a calculator, then enters it again into the accounting software.</p>
+
+    <div class="ba">
+      <div class="card before"><h4>Before</h4><ul><li>~4 minutes per invoice → about 20 hours a month</li><li>Errors noticed at month-end closing</li><li>Duplicate invoices sometimes paid twice</li><li>No record of what was checked</li></ul></div>
+      <div class="card after"><h4>After</h4><ul><li>Suppliers' files are processed as soon as they arrive</li><li>Only rejected rows need a person: about 2 hours a month</li><li>Duplicates blocked automatically</li><li>Every run is logged with counts and reasons</li></ul></div>
+    </div>
+  </div>
+
+  <h4 style="margin-top:24px">1 · The file that arrives (extract)</h4>
+  <div class="scroll">
+    <table class="mono">
+      <tr><th>#</th><th>invoice_number</th><th>supplier</th><th>invoice_date</th><th>due_date</th><th class="r">amount_ht</th><th class="r">vat</th><th class="r">vat_amount</th><th class="r">amount_ttc</th></tr>
+      <tr><td>2</td><td>INV-2026-00001</td><td>Atlas Cleaning</td><td>2026-06-19</td><td>2026-07-19</td><td class="r">24,275.399</td><td class="r">19</td><td class="r">4,612.326</td><td class="r">28,887.725</td></tr>
+      <tr><td>3</td><td>INV-2026-00002</td><td>Atlas Cleaning</td><td>2026-05-26</td><td>2026-06-25</td><td class="r">11,435.509</td><td class="r">7</td><td class="r">800.486</td><td class="r">12,285.995</td></tr>
+      <tr class="bad"><td>9</td><td>INV-2026-00008</td><td>Sahel Packaging</td><td class="bad">31/02/2026</td><td>2026-03-30</td><td class="r">3,120.000</td><td class="r">19</td><td class="r">592.800</td><td class="r">3,712.800</td></tr>
+      <tr class="bad"><td>17</td><td>INV-2026-00016</td><td>Cap Bon Beverages</td><td>2026-04-02</td><td>2026-05-17</td><td class="r">8,400.000</td><td class="r">13</td><td class="r">1,092.000</td><td class="r bad">9,542.000</td></tr>
+      <tr class="bad"><td>33</td><td>INV-2026-00032</td><td>Carthage Logistics</td><td>2026-07-11</td><td class="bad">2025-01-01</td><td class="r">1,000.000</td><td class="r">19</td><td class="r">190.000</td><td class="r">1,190.000</td></tr>
+      <tr class="bad"><td>52</td><td>INV-2026-00001</td><td>Atlas Cleaning</td><td>2026-06-19</td><td>2026-07-19</td><td class="r">24,275.399</td><td class="r">19</td><td class="r">4,612.326</td><td class="r">28,887.725</td></tr>
+    </table>
+  </div>
+  <p class="caption">Highlighted rows contain problems a busy person can easily miss: an impossible date, a total that is 50 TND too high, a due date before the invoice date, and an invoice sent twice.</p>
+
+  <h4 style="margin-top:24px">2 · The rules that check it</h4>
+  <div class="scroll">
+    <table>
+      <tr><th>Rule</th><th>Why it matters</th><th>Example caught</th></tr>
+      <tr><td>All mandatory fields present</td><td>Missing tax ID = invoice can't be booked</td><td>Row with empty supplier tax ID</td></tr>
+      <tr><td>Dates valid, due date ≥ invoice date</td><td>Wrong dates break payment planning</td><td class="bad-t">31/02/2026 · due date in 2025</td></tr>
+      <tr><td>VAT amount = amount HT × rate (±0.01)</td><td>Wrong VAT is a tax risk</td><td>vat_amount typed with a wrong rate</td></tr>
+      <tr><td>Total TTC = HT + VAT (±0.01)</td><td>Overpayment to suppliers</td><td class="bad-t">9,542.000 instead of 9,492.000</td></tr>
+      <tr><td>Rate ∈ {0, 7, 13, 19} and currency ∈ {TND, EUR, USD}</td><td>Catches typing errors</td><td>Currency "XYZ"</td></tr>
+      <tr><td>Supplier + invoice number unique</td><td>Never pay the same invoice twice</td><td class="bad-t">INV-2026-00001 sent again</td></tr>
+    </table>
+  </div>
+
+  <h4 style="margin-top:24px">3 · What the team receives</h4>
+<pre class="out">From:    OpsPilot Automation
+Subject: [OpsPilot] invoices_0915.csv: 45 saved, 5 rejected, 1 duplicate
+
+Invoice import summary
+  • Rows read: 51
+  • Saved: 45 (total 612,480.315 TND)
+  • Rejected: 5
+  • Duplicates skipped: 1
+
+Needs attention
+  1. Row 9  (INV-2026-00008): invoice_date "31/02/2026" is not a valid YYYY-MM-DD date
+  2. Row 17 (INV-2026-00016): amount_ttc does not equal amount_ht + vat_amount
+  3. Row 33 (INV-2026-00032): due_date is before invoice_date
+  4. …</pre>
+
+  <h3>More automation examples</h3>
+  <div class="grid g3 ex">
+    <div class="card"><h4>📧 Customer orders by email</h4><dl><dt>Trigger</dt><dd>Order email with an Excel attachment</dd><dt>Action</dt><dd>Read lines, check SKUs and stock, create a draft order</dd><dt>Result</dt><dd>Sales team confirms orders instead of retyping them</dd></dl></div>
+    <div class="card"><h4>💲 Supplier price lists</h4><dl><dt>Trigger</dt><dd>Monthly price list from each supplier</dd><dt>Action</dt><dd>Compare with last month, flag increases above 5%</dd><dt>Result</dt><dd>Buyer sees price changes before placing orders</dd></dl></div>
+    <div class="card"><h4>⏰ Payment reminders</h4><dl><dt>Trigger</dt><dd>Every morning at 8:00</dd><dt>Action</dt><dd>Find customer invoices due in 3 days or overdue</dd><dt>Result</dt><dd>Polite reminders sent; daily list to the finance manager</dd></dl></div>
+  </div>
+
+  <h3>What's included</h3>
+  <div class="pkg">
+    <div class="card"><h4>You receive</h4><ul><li>The working workflow(s)</li><li>Error alerts if anything fails</li><li>A rejected-records report</li><li>Documentation + a handover session</li></ul></div>
+    <div class="card"><h4>We need from you</h4><ul><li>10–50 sample files (anonymised is fine)</li><li>Your checking rules, even informal ones</li><li>One person to validate the results</li></ul></div>
+    <div class="card"><h4>Typical timeline</h4><ul><li>Week 1: samples &amp; rules</li><li>Week 2: build &amp; internal tests</li><li>Week 3: run on real files, adjust, hand over</li></ul></div>
+  </div>
+</section>
+
+<!-- ================= INTERNAL TOOLS ================= -->
+<section class="svc tool" id="tools">
+  <div class="svc-head">
+    <div class="svc-icon">🧰</div>
+    <div>
+      <p class="eyebrow">Service 2</p>
+      <h2>Internal tools</h2>
+      <p class="muted" style="margin:0">Custom business applications that replace scattered spreadsheets with one secure place: the right screens for each role, rules that prevent mistakes, and a full history of every change.</p>
+      <div class="chips"><span class="chip">Inventory</span><span class="chip">Invoice approval</span><span class="chip">Purchase requests</span><span class="chip">Deliveries</span><span class="chip">Returns</span></div>
+    </div>
+  </div>
+
+  <h3>Problems it solves</h3>
+  <ul class="problems">
+    <li>Several versions of the same Excel file, and nobody knows which is right</li>
+    <li>Anyone can change anything, including prices and stock</li>
+    <li>"Who changed this?" has no answer</li>
+    <li>Approvals lost in email threads and WhatsApp messages</li>
+  </ul>
+
+  <h3>How it works</h3>
+  <div class="steps">
+    <div class="card"><h4>Map the process</h4><p>We watch how the work is done today and write the user stories with you.</p></div>
+    <div class="card"><h4>Define roles</h4><p>Who can see, create, change and approve what, written down before any code.</p></div>
+    <div class="card"><h4>Build the core</h4><p>Login, the main screens, search, validation and the database.</p></div>
+    <div class="card"><h4>Test with users</h4><p>Your team uses it on real scenarios; we fix and adjust.</p></div>
+    <div class="card"><h4>Go live</h4><p>Import existing data, train the team, hand over the documentation.</p></div>
+  </div>
+
+  <h3>Worked example: inventory &amp; invoice manager</h3>
+  <div class="story">
+    <p><span class="label">The situation</span><br>
+    <b>Sahel Packaging SARL</b> (fictional) tracks 120 products in three spreadsheets: one per warehouse plus a "master" copy. Stock-outs are discovered when a customer calls. Supplier invoices are approved by forwarding emails to the manager.</p>
+    <div class="ba">
+      <div class="card before"><h4>Before</h4><ul><li>Stock counts that don't match between files</li><li>Stock-outs noticed too late</li><li>Approvals take days and get lost</li><li>No history of changes</li></ul></div>
+      <div class="card after"><h4>After</h4><ul><li>One stock figure, updated by every movement</li><li>"Low stock" list visible every morning</li><li>One-click approval, visible to everyone concerned</li><li>Audit log: who, what, when</li></ul></div>
+    </div>
+  </div>
+
+  <h4 style="margin-top:24px">1 · Who can do what</h4>
+  <div class="scroll">
+    <table>
+      <tr><th>Action</th><th>Staff</th><th>Manager</th><th>Admin</th></tr>
+      <tr><td>Search products, suppliers, invoices</td><td class="ok-t">✓</td><td class="ok-t">✓</td><td class="ok-t">✓</td></tr>
+      <tr><td>Record goods received / shipped</td><td class="ok-t">✓</td><td class="ok-t">✓</td><td class="ok-t">✓</td></tr>
+      <tr><td>Create or edit products and prices</td><td class="bad-t">✕</td><td class="ok-t">✓</td><td class="ok-t">✓</td></tr>
+      <tr><td>Approve / reject supplier invoices</td><td class="bad-t">✕</td><td class="ok-t">✓</td><td class="ok-t">✓</td></tr>
+      <tr><td>View the dashboard</td><td class="bad-t">✕</td><td class="ok-t">✓</td><td class="ok-t">✓</td></tr>
+      <tr><td>Manage users, read the audit log</td><td class="bad-t">✕</td><td class="bad-t">✕</td><td class="ok-t">✓</td></tr>
+    </table>
+  </div>
+  <p class="caption">Permissions are enforced by the server, not just hidden in the menu, and automated tests prove it.</p>
+
+  <h4 style="margin-top:24px">2 · A day in the application</h4>
+  <div class="tl">
+    <div class="tl-item" style="--c:var(--c-tool)"><b>08:10 · Sami (Staff) checks low stock</b><span>Filters "Low stock only": Orange juice 1L has 6 units left (reorder level 20). He tells purchasing.</span></div>
+    <div class="tl-item" style="--c:var(--c-tool)"><b>10:30 · Sami records a delivery</b><span>Receives 200 units. Stock goes from 6 → 206. Trying to ship 300 units later is refused: "Not enough stock: 206 available, 300 requested".</span></div>
+    <div class="tl-item" style="--c:var(--c-tool)"><b>11:00 · Mehdi (Manager) approves invoices</b><span>Three supplier invoices are pending. He approves two and rejects one with a comment.</span></div>
+    <div class="tl-item" style="--c:var(--c-tool)"><b>16:45 · Amira (Admin) reviews the day</b><span>The audit log lists every change, including Mehdi's approvals with time and details.</span></div>
+  </div>
+
+  <h4 style="margin-top:8px">3 · What the audit log shows</h4>
+  <div class="scroll">
+    <table class="mono">
+      <tr><th>Time</th><th>User</th><th>Action</th><th>Entity</th><th>Detail</th></tr>
+      <tr><td>10:30:12</td><td>Sami (Staff)</td><td>POST</td><td>/stock/movements</td><td>SKU-0014 · IN · +200</td></tr>
+      <tr><td>11:02:47</td><td>Mehdi (Manager)</td><td>PATCH</td><td>/invoices/17/status</td><td>PENDING → APPROVED</td></tr>
+      <tr><td>11:03:15</td><td>Mehdi (Manager)</td><td>PATCH</td><td>/invoices/19/status</td><td>PENDING → REJECTED</td></tr>
+      <tr><td>15:20:02</td><td>Mehdi (Manager)</td><td>PATCH</td><td>/products/14</td><td>reorderLevel 20 → 40</td></tr>
+    </table>
+  </div>
+
+  <h3>More internal tool examples</h3>
+  <div class="grid g3 ex">
+    <div class="card"><h4>🚚 Delivery tracking</h4><dl><dt>Users</dt><dd>Drivers (mobile), dispatcher</dd><dt>Does</dt><dd>Assign routes, confirm delivery with photo &amp; signature</dd><dt>Result</dt><dd>No more "was it delivered?" phone calls</dd></dl></div>
+    <div class="card"><h4>↩️ Returns management</h4><dl><dt>Users</dt><dd>Sales, warehouse, quality</dd><dt>Does</dt><dd>Log the return reason, inspect, restock or write off</dd><dt>Result</dt><dd>Return reasons measured, and credits issued faster</dd></dl></div>
+    <div class="card"><h4>🛒 Purchase requests</h4><dl><dt>Users</dt><dd>All staff, managers, finance</dd><dt>Does</dt><dd>Request, approve by amount threshold, track to delivery</dd><dt>Result</dt><dd>Spending controlled without slowing people down</dd></dl></div>
+  </div>
+
+  <h3>What's included</h3>
+  <div class="pkg">
+    <div class="card"><h4>You receive</h4><ul><li>The web application (works on desktop and tablet)</li><li>Roles, validation and audit log</li><li>Automated tests and API documentation</li><li>User guide + team training</li></ul></div>
+    <div class="card"><h4>We need from you</h4><ul><li>A walkthrough of the current process</li><li>Your existing files for data import</li><li>1–2 people to test each week</li></ul></div>
+    <div class="card"><h4>Typical timeline</h4><ul><li>Week 1: process mapping &amp; roles</li><li>Weeks 2–3: build core screens</li><li>Weeks 4–5: user testing, data import, go-live</li></ul></div>
+  </div>
+</section>
+
+<!-- ================= ANALYTICS ================= -->
+<section class="svc data" id="analytics">
+  <div class="svc-head">
+    <div class="svc-icon">📊</div>
+    <div>
+      <p class="eyebrow">Service 3</p>
+      <h2>Data analytics</h2>
+      <p class="muted" style="margin:0">Turn the exports you already have into trustworthy numbers: cleaned data, clearly defined KPIs, dashboards, and a short monthly report that tells management where to act.</p>
+      <div class="chips"><span class="chip">Sales performance</span><span class="chip">Slow-moving stock</span><span class="chip">Customer trends</span><span class="chip">Supplier performance</span><span class="chip">Data quality</span></div>
+    </div>
+  </div>
+
+  <h3>Problems it solves</h3>
+  <ul class="problems">
+    <li>The monthly report takes days of copy-paste in Excel</li>
+    <li>Two people calculate "revenue" and get two different figures</li>
+    <li>Declining products are noticed only when it's too late</li>
+    <li>Dirty data: duplicates, mixed date formats, typing errors</li>
+  </ul>
+
+  <h3>How it works</h3>
+  <div class="steps">
+    <div class="card"><h4>Collect</h4><p>A CSV or Excel export from your ERP, POS or spreadsheets. No system change needed.</p></div>
+    <div class="card"><h4>Clean</h4><p>Fix duplicates, dates, decimals and gaps. Every fix is logged and nothing is hidden.</p></div>
+    <div class="card"><h4>Define KPIs</h4><p>Agree on one written definition for each number, checked against your manual figures.</p></div>
+    <div class="card"><h4>Visualise</h4><p>Dashboards for daily use and a self-service upload page.</p></div>
+    <div class="card"><h4>Report</h4><p>A 2-page monthly PDF that answers your key questions.</p></div>
+  </div>
+
+  <h3>Worked example: 12 months of sales</h3>
+  <div class="story">
+    <p><span class="label">The situation</span><br>
+    <b>Cap Bon Beverages</b> (fictional) exports 12 months of sales from its POS: about <b>24,000 lines</b>, 40 products, 60 customers, 6 regions. The owner wants to know where sales are dropping and what is sitting in the warehouse.</p>
+    <div class="ba">
+      <div class="card before"><h4>Before</h4><ul><li>Two days of Excel work every month</li><li>Duplicates and typing errors inflate the figures</li><li>The report shows totals, not problems</li></ul></div>
+      <div class="card after"><h4>After</h4><ul><li>Upload → results in about a minute</li><li>1,966 data issues found, fixed or flagged</li><li>The report names the products and regions to act on</li></ul></div>
+    </div>
+  </div>
+  <p class="note">The figures in this example come from a real run of the OpsPilot analytics pipeline on a synthetic dataset.</p>
+
+  <h4 style="margin-top:24px">1 · What the cleaning found</h4>
+  <div class="scroll">
+    <table>
+      <tr><th>Issue</th><th>Example</th><th>Action</th><th class="r">Rows</th></tr>
+      <tr><td>Comma used as decimal separator</td><td class="mono">"12,450"</td><td>Converted to 12.450</td><td class="r">712</td></tr>
+      <tr><td>Dates in DD/MM/YYYY</td><td class="mono">"15/02/2026"</td><td>Converted to 2026-02-15</td><td class="r">474</td></tr>
+      <tr><td>Exact duplicate rows</td><td>Same invoice line exported twice</td><td>Removed</td><td class="r">237</td></tr>
+      <tr><td>Missing region</td><td>Empty cell</td><td>Filled from the customer's usual region</td><td class="r">237</td></tr>
+      <tr><td>Negative quantity</td><td class="mono">-6</td><td>Kept, flagged as a return</td><td class="r">237</td></tr>
+      <tr><td>Abnormal quantity</td><td class="mono">1,200 instead of 12</td><td class="bad-t">Excluded from KPIs, listed for review</td><td class="r">69</td></tr>
+    </table>
+  </div>
+
+  <h4 style="margin-top:24px">2 · Headline KPIs</h4>
+  <div class="grid g3" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
+    <div class="card"><span class="muted" style="font-size:13px">Total revenue (12 months)</span><div style="font-size:26px;font-weight:800">8.63 M TND</div></div>
+    <div class="card"><span class="muted" style="font-size:13px">September 2026</span><div style="font-size:26px;font-weight:800">656 K TND</div><span class="bad-t" style="font-size:13px">▼ 4.6% vs August</span></div>
+    <div class="card"><span class="muted" style="font-size:13px">Orders</span><div style="font-size:26px;font-weight:800">23,650</div></div>
+    <div class="card"><span class="muted" style="font-size:13px">Return rate</span><div style="font-size:26px;font-weight:800">0.99%</div></div>
+  </div>
+
+  <h4 style="margin-top:24px">3 · The answers management asked for</h4>
+  <div class="grid g2">
+    <div>
+      <p style="margin:0 0 8px"><b>Where are sales declining?</b> <span class="muted">Last 3 months vs previous 3, drops over 30%</span></p>
+      <div class="scroll"><table>
+        <tr><th>SKU</th><th class="r">Previous</th><th class="r">Recent</th><th class="r">Change</th></tr>
+        <tr><td>SKU-0004</td><td class="r">39,840</td><td class="r">16,990</td><td class="r bad">−57%</td></tr>
+        <tr><td>SKU-0022</td><td class="r">33,532</td><td class="r">14,709</td><td class="r bad">−56%</td></tr>
+        <tr><td>SKU-0003</td><td class="r">42,180</td><td class="r">20,396</td><td class="r bad">−52%</td></tr>
+        <tr><td>SKU-0028</td><td class="r">13,583</td><td class="r">6,838</td><td class="r bad">−50%</td></tr>
+        <tr><td>SKU-0032</td><td class="r">1,752</td><td class="r">731</td><td class="r bad">−58%</td></tr>
+      </table></div>
+    </div>
+    <div>
+      <p style="margin:0 0 8px"><b>Which products are slow-moving?</b> <span class="muted">Fewer than 60 units in 90 days</span></p>
+      <div class="scroll"><table>
+        <tr><th>SKU</th><th class="r">Units (90 days)</th><th class="r">Days since last sale</th></tr>
+        <tr><td>SKU-0031</td><td class="r">0</td><td class="r bad">115</td></tr>
+        <tr><td>SKU-0016</td><td class="r">13</td><td class="r">42</td></tr>
+        <tr><td>SKU-0012</td><td class="r">18</td><td class="r">89</td></tr>
+        <tr><td>SKU-0034</td><td class="r">31</td><td class="r">66</td></tr>
+        <tr><td>SKU-0017</td><td class="r">43</td><td class="r">10</td></tr>
+      </table></div>
+    </div>
+  </div>
+  <p class="caption">How we prove the numbers: the pipeline is tested on a small dataset whose totals are calculated by hand, and on synthetic data where the declining and slow products were planted on purpose. It found all 5 of each, with no false alarms.</p>
+
+  <h4 style="margin-top:24px">4 · KPI definitions (written once, used everywhere)</h4>
+  <div class="scroll">
+    <table>
+      <tr><th>KPI</th><th>Definition</th></tr>
+      <tr><td>Revenue</td><td>quantity × unit price × (1 − discount), returns subtracted, abnormal rows excluded</td></tr>
+      <tr><td>Month-on-month growth</td><td>(revenue last month − revenue previous month) ÷ revenue previous month</td></tr>
+      <tr><td>Declining product</td><td>Revenue of the last 3 months ≥ 30% below the 3 months before, with at least 1,000 TND before</td></tr>
+      <tr><td>Slow-moving product</td><td>Fewer than 60 units sold in the last 90 days</td></tr>
+      <tr><td>Return rate</td><td>Return lines ÷ all lines</td></tr>
+    </table>
+  </div>
+
+  <h3>More analytics examples</h3>
+  <div class="grid g3 ex">
+    <div class="card"><h4>👥 Customers at risk</h4><dl><dt>Data</dt><dd>Sales by customer</dd><dt>Finds</dt><dd>Regular customers who haven't ordered for 2× their usual interval</dd><dt>Result</dt><dd>Sales team calls them before they switch supplier</dd></dl></div>
+    <div class="card"><h4>🏭 Supplier performance</h4><dl><dt>Data</dt><dd>Purchase orders &amp; receipts</dd><dt>Finds</dt><dd>Late deliveries, short deliveries and price drift per supplier</dd><dt>Result</dt><dd>Facts on the table for the next negotiation</dd></dl></div>
+    <div class="card"><h4>💰 Margin by product</h4><dl><dt>Data</dt><dd>Sales + purchase costs</dd><dt>Finds</dt><dd>Best sellers with thin or negative margins</dd><dt>Result</dt><dd>Price adjustments where they matter most</dd></dl></div>
+  </div>
+
+  <h3>What's included</h3>
+  <div class="pkg">
+    <div class="card"><h4>You receive</h4><ul><li>Cleaned dataset + issues log</li><li>Dashboard (self-service or BI)</li><li>A 2-page monthly report (PDF)</li><li>KPI definitions document</li></ul></div>
+    <div class="card"><h4>We need from you</h4><ul><li>An export of 6–12 months of data</li><li>Your 3–5 key questions</li><li>One known figure to check against</li></ul></div>
+    <div class="card"><h4>Typical timeline</h4><ul><li>Days 1–3: data review &amp; questions</li><li>Days 4–7: cleaning, KPIs, validation</li><li>Week 2: dashboard, report, walkthrough</li></ul></div>
+  </div>
+</section>
+
+<!-- ================= COMBINED ================= -->
+<section class="svc" id="combined" style="--accent:var(--brand);--accent-soft:var(--brand-soft)">
+  <p class="eyebrow">Optional</p>
+  <h2>The combined solution</h2>
+  <p class="muted">When the three services are connected, each makes the others more valuable, but none of them depends on the others. Here is one month at a fictional distributor that uses all three.</p>
+  <div class="tl" style="margin-top:20px">
+    <div class="tl-item" style="--c:var(--c-auto)"><b>Every day · Automation</b><span>Supplier invoices are checked and sent straight into the internal tool as "pending", tagged 🤖 auto. Problem rows go to the accounting assistant with reasons.</span></div>
+    <div class="tl-item" style="--c:var(--c-tool)"><b>Every day · Internal tool</b><span>Managers approve invoices in one click; staff record stock movements; the audit log keeps the history.</span></div>
+    <div class="tl-item" style="--c:var(--c-data)"><b>Every week · Analytics</b><span>The operations dashboard shows pending and overdue invoices, low stock, and how many invoices were automated vs typed.</span></div>
+    <div class="tl-item" style="--c:var(--c-data)"><b>1st of the month · Report</b><span>The management report lists declining products, slow movers, supplier spend and data issues, ready for the monthly meeting.</span></div>
+  </div>
+  <div class="card" style="margin-top:8px">
+    <h4>Built to stay independent</h4>
+    <ul class="check">
+      <li>If the application is offline, the automation keeps saving invoices to its own tables, and nothing is lost</li>
+      <li>The analytics can always run from a plain CSV export</li>
+      <li>The application works fine with manual entry only</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ================= ENGAGEMENT ================= -->
+<section class="svc" id="engagement" style="--accent:var(--brand);--accent-soft:var(--brand-soft)">
+  <p class="eyebrow">How we work</p>
+  <h2>Small pilot first, then grow</h2>
+  <div class="steps" style="margin-top:18px">
+    <div class="card"><h4>Discovery call</h4><p>30 minutes about one process: who does it, how long it takes, what goes wrong.</p></div>
+    <div class="card"><h4>Demo on your data</h4><p>Within about a week, a working demo on an anonymised sample of your files.</p></div>
+    <div class="card"><h4>Paid pilot</h4><p>Fixed scope, fixed price, 2–4 weeks, with success criteria agreed in writing.</p></div>
+    <div class="card"><h4>Extend or support</h4><p>More processes, another service, or a monthly support plan.</p></div>
+  </div>
+  <h3>Agreed in writing before we start</h3>
+  <div class="grid g2">
+    <div class="card"><ul class="check"><li><b>Your data is yours</b>: deleted from our systems at the end unless agreed otherwise</li><li><b>Hosting account</b>: ideally in your name, with us as administrator</li></ul></div>
+    <div class="card"><ul class="check"><li><b>Recurring costs</b> (hosting, any AI usage) are listed upfront</li><li><b>Support</b>: what's included, response time, and what counts as a change</li></ul></div>
+  </div>
+</section>
+
+<!-- ================= FAQ ================= -->
+<section class="svc" id="faq" style="--accent:var(--brand)">
+  <p class="eyebrow">Questions</p>
+  <h2>Frequently asked</h2>
+  <div style="margin-top:18px">
+    <details><summary>Do we have to replace our ERP or accounting software?</summary><p>No. We work around what you already have: exports, emails, shared folders. When your software offers an import or an API, we can feed data into it directly.</p></details>
+    <details><summary>What if the AI makes a mistake?</summary><p>AI never has the final word. It only suggests values (for example, from a scanned invoice), and the same validation rules check them. Anything uncertain is sent to a person. The system also works with AI turned off.</p></details>
+    <details><summary>Is our data safe?</summary><p>Demos use synthetic data. For pilots, your data stays in an environment we agree on together, access is limited by role, every change is logged, and the data handling is written into the agreement.</p></details>
+    <details><summary>Can we buy only one service?</summary><p>Yes. That is how most clients start. Each service is designed to work on its own.</p></details>
+    <details><summary>What happens after the pilot?</summary><p>You keep what was delivered. You can then extend it to more processes, add another service, or take a monthly support plan, or stop there.</p></details>
+    <details><summary>Who owns the code and the workflows?</summary><p>This is agreed in the proposal. Typically, the client receives full rights to what was built specifically for them, while reusable building blocks remain ours, licensed to them.</p></details>
+  </div>
+</section>
+
+<div class="cta">
+  <h2>Which task takes your team too much time?</h2>
+  <p class="muted" style="max-width:560px;margin:0 auto 14px">Tell us about one process. If there's a fit, you'll see a working demo on your own sample data.</p>
+  <a class="btn" href="mailto:?subject=OpsPilot%20AI%20-%2020-minute%20call">Book a 20-minute call</a>
+  <a class="btn ghost" href="presentation.html">View the presentation</a>
+</div>
+
+</div>
+
+<footer>OpsPilot AI · AI Automation &amp; Business Software · Examples use fictional companies and synthetic data.</footer>
+
+<script>
+  /* ---------- language switch (EN / FR) ---------- */
+  const FR = {"Overview": "Vue d'ensemble", "Automation": "Automatisation", "Internal tools": "Outils internes", "Analytics": "Analyse", "Combined": "Combiné", "How we work": "Notre méthode", "FAQ": "FAQ", "Toggle light or dark theme": "Basculer entre mode clair et sombre", "Toggle theme": "Changer de thème", "Services guide": "Guide des services", "Three services, explained with real examples": "Trois services, expliqués avec des exemples concrets", "OpsPilot AI helps growing distribution businesses spend less time on admin and more time on decisions. Each service below can be bought on its own. This guide explains what each one does, how it works, and what the result looks like on a typical day.": "OpsPilot AI aide les entreprises de distribution en croissance à passer moins de temps sur l'administratif et plus de temps sur les décisions. Chaque service ci-dessous peut être acheté séparément. Ce guide explique ce que fait chacun, comment il fonctionne et à quoi ressemble le résultat au quotidien.", "All companies, people and figures in the examples are fictional and use synthetic data. Time savings are illustrative estimates; in a pilot we measure your real numbers together.": "Toutes les entreprises, personnes et chiffres des exemples sont fictifs et reposent sur des données synthétiques. Les gains de temps sont des estimations indicatives ; lors d'un pilote, nous mesurons ensemble vos chiffres réels.", "At a glance": "En un coup d'œil", "Pick the service that matches the problem you have today.": "Choisissez le service qui correspond au problème que vous avez aujourd'hui.", "Data analytics": "Analyse de données", "Solves": "Résout", "Repetitive data entry and copy-paste between systems": "La saisie répétitive et les copier-coller entre logiciels", "Processes run in Excel files, emails and paper": "Les processus gérés dans des fichiers Excel, des e-mails et sur papier", "Not knowing what is really happening in the numbers": "Ne pas savoir ce qui se passe vraiment dans les chiffres", "You get": "Vous obtenez", "A workflow that receives, checks, saves and alerts": "Un workflow qui reçoit, vérifie, enregistre et alerte", "A secure web app with roles and history": "Une application web sécurisée avec rôles et historique", "Clean data, KPIs, dashboards and a monthly report": "Des données propres, des KPI, des tableaux de bord et un rapport mensuel", "Typical pilot": "Pilote type", "2–3 weeks": "2–3 semaines", "3–5 weeks": "3–5 semaines", "1–2 weeks": "1–2 semaines", "We need from you": "Ce dont nous avons besoin", "10–50 sample files + your checking rules": "10 à 50 fichiers d'exemple + vos règles de contrôle", "Your current process + 1–2 key users": "Votre processus actuel + 1 à 2 utilisateurs clés", "A data export (CSV/Excel) + your key questions": "Un export de données (CSV/Excel) + vos questions clés", "Proof it works": "La preuve que ça marche", "Test run on your files, with every rejected row explained": "Un test sur vos fichiers, avec chaque ligne rejetée expliquée", "Permission and data-consistency tests": "Des tests de droits d'accès et de cohérence des données", "KPIs matched against your own manual figures": "Des KPI comparés à vos propres calculs manuels", "Service 1": "Service 1", "Connect your apps and remove repetitive workflows. Information arrives, gets checked against your rules, lands in the right place, and the right person is told what needs attention.": "Connectez vos applications et supprimez les tâches répétitives. L'information arrive, est vérifiée selon vos règles, est rangée au bon endroit, et la bonne personne est prévenue de ce qui demande son attention.", "Supplier invoices": "Factures fournisseurs", "Order emails": "Commandes par e-mail", "CSV / Excel imports": "Imports CSV / Excel", "Price lists": "Listes de prix", "Alerts & reminders": "Alertes & relances", "Problems it solves": "Les problèmes résolus", "The same data typed twice: from a PDF or email into Excel, then into the accounting software": "Les mêmes données saisies deux fois : du PDF ou de l'e-mail vers Excel, puis dans le logiciel comptable", "Errors found weeks later, such as wrong VAT, duplicate invoices or totals that don't add up": "Des erreurs découvertes des semaines plus tard : TVA erronée, factures en double, totaux incohérents", "Staff time lost on copy-paste instead of supplier and customer follow-up": "Du temps perdu en copier-coller au lieu du suivi des fournisseurs et des clients", "Nobody is alerted when something goes wrong, so problems pile up silently": "Personne n'est alerté en cas de problème, qui s'accumulent donc en silence", "How it works": "Comment ça marche", "Receive": "Recevoir", "Files dropped in a folder, email attachments, or exports from another system.": "Fichiers déposés dans un dossier, pièces jointes d'e-mails ou exports d'un autre logiciel.", "Extract": "Extraire", "Read the fields. For scanned documents, optional OCR or a local AI model suggests the values.": "Lecture des champs. Pour les documents scannés, un OCR ou un modèle d'IA local (en option) propose les valeurs.", "Validate": "Valider", "Your business rules check every record: dates, VAT, totals, currencies, mandatory fields, duplicates.": "Vos règles métier vérifient chaque enregistrement : dates, TVA, totaux, devises, champs obligatoires, doublons.", "Save": "Enregistrer", "Valid records go to the database or your application. Invalid ones are quarantined with a reason.": "Les données valides vont dans la base ou votre application. Les autres sont mises en quarantaine avec un motif.", "Notify": "Notifier", "A summary by email or Telegram: how many were processed, and exactly what needs a person.": "Un récapitulatif par e-mail ou Telegram : combien ont été traitées, et précisément ce qui nécessite une intervention humaine.", "Worked example: supplier invoice processing": "Exemple détaillé : traitement des factures fournisseurs", "The situation": "La situation", "(fictional, 45 employees) receives about": "(fictive, 45 salariés) reçoit environ", "300 supplier invoices a month": "300 factures fournisseurs par mois", "from 25 suppliers. An accounting assistant types each one into a spreadsheet, checks the VAT with a calculator, then enters it again into the accounting software.": "de 25 fournisseurs. Une assistante comptable saisit chacune dans un tableur, vérifie la TVA à la calculatrice, puis la ressaisit dans le logiciel comptable.", "Before": "Avant", "~4 minutes per invoice → about 20 hours a month": "~4 minutes par facture → environ 20 heures par mois", "Errors noticed at month-end closing": "Erreurs repérées à la clôture mensuelle", "Duplicate invoices sometimes paid twice": "Factures en double parfois payées deux fois", "No record of what was checked": "Aucune trace de ce qui a été vérifié", "After": "Après", "Suppliers' files are processed as soon as they arrive": "Les fichiers fournisseurs sont traités dès leur arrivée", "Only rejected rows need a person: about 2 hours a month": "Seules les lignes rejetées demandent une personne : environ 2 heures par mois", "Duplicates blocked automatically": "Doublons bloqués automatiquement", "Every run is logged with counts and reasons": "Chaque traitement est journalisé avec ses chiffres et ses motifs", "1 · The file that arrives (extract)": "1 · Le fichier reçu (extrait)", "Highlighted rows contain problems a busy person can easily miss: an impossible date, a total that is 50 TND too high, a due date before the invoice date, and an invoice sent twice.": "Les lignes surlignées contiennent des erreurs faciles à manquer quand on est pressé : une date impossible, un total trop élevé de 50 TND, une échéance antérieure à la date de facture et une facture envoyée deux fois.", "2 · The rules that check it": "2 · Les règles qui le vérifient", "Rule": "Règle", "Why it matters": "Pourquoi c'est important", "Example caught": "Exemple détecté", "All mandatory fields present": "Tous les champs obligatoires présents", "Missing tax ID = invoice can't be booked": "Matricule fiscal manquant = facture impossible à comptabiliser", "Row with empty supplier tax ID": "Ligne sans matricule fiscal fournisseur", "Dates valid, due date ≥ invoice date": "Dates valides, échéance ≥ date de facture", "Wrong dates break payment planning": "Des dates erronées faussent le planning de paiement", "31/02/2026 · due date in 2025": "31/02/2026 · échéance en 2025", "VAT amount = amount HT × rate (±0.01)": "Montant TVA = montant HT × taux (±0,01)", "Wrong VAT is a tax risk": "Une TVA erronée est un risque fiscal", "vat_amount typed with a wrong rate": "TVA calculée avec un mauvais taux", "Total TTC = HT + VAT (±0.01)": "Total TTC = HT + TVA (±0,01)", "Overpayment to suppliers": "Trop-payé aux fournisseurs", "9,542.000 instead of 9,492.000": "9 542,000 au lieu de 9 492,000", "Rate ∈ {0, 7, 13, 19} and currency ∈ {TND, EUR, USD}": "Taux ∈ {0, 7, 13, 19} et devise ∈ {TND, EUR, USD}", "Catches typing errors": "Détecte les fautes de frappe", "Currency \"XYZ\"": "Devise « XYZ »", "Supplier + invoice number unique": "Fournisseur + numéro de facture unique", "Never pay the same invoice twice": "Ne jamais payer deux fois la même facture", "INV-2026-00001 sent again": "INV-2026-00001 envoyée à nouveau", "3 · What the team receives": "3 · Ce que l'équipe reçoit", "More automation examples": "Autres exemples d'automatisation", "📧 Customer orders by email": "📧 Commandes clients par e-mail", "Trigger": "Déclencheur", "Order email with an Excel attachment": "E-mail de commande avec un fichier Excel joint", "Action": "Action", "Read lines, check SKUs and stock, create a draft order": "Lire les lignes, vérifier références et stock, créer un brouillon de commande", "Result": "Résultat", "Sales team confirms orders instead of retyping them": "L'équipe commerciale confirme les commandes au lieu de les ressaisir", "💲 Supplier price lists": "💲 Tarifs fournisseurs", "Monthly price list from each supplier": "Liste de prix mensuelle de chaque fournisseur", "Compare with last month, flag increases above 5%": "Comparer au mois précédent, signaler les hausses de plus de 5 %", "Buyer sees price changes before placing orders": "L'acheteur voit les hausses de prix avant de commander", "⏰ Payment reminders": "⏰ Relances de paiement", "Every morning at 8:00": "Chaque matin à 8 h", "Find customer invoices due in 3 days or overdue": "Repérer les factures clients à échéance dans 3 jours ou en retard", "Polite reminders sent; daily list to the finance manager": "Relances courtoises envoyées ; liste quotidienne au responsable financier", "What's included": "Ce qui est inclus", "You receive": "Vous recevez", "The working workflow(s)": "Le ou les workflows opérationnels", "Error alerts if anything fails": "Des alertes en cas d'échec", "A rejected-records report": "Un rapport des enregistrements rejetés", "Documentation + a handover session": "La documentation + une séance de passation", "10–50 sample files (anonymised is fine)": "10 à 50 fichiers d'exemple (anonymisés, c'est très bien)", "Your checking rules, even informal ones": "Vos règles de contrôle, même informelles", "One person to validate the results": "Une personne pour valider les résultats", "Typical timeline": "Calendrier type", "Week 1: samples & rules": "Semaine 1 : exemples & règles", "Week 2: build & internal tests": "Semaine 2 : développement & tests internes", "Week 3: run on real files, adjust, hand over": "Semaine 3 : test sur fichiers réels, ajustements, passation", "Service 2": "Service 2", "Custom business applications that replace scattered spreadsheets with one secure place: the right screens for each role, rules that prevent mistakes, and a full history of every change.": "Des applications métier sur mesure qui remplacent les tableurs éparpillés par un seul espace sécurisé : les bons écrans pour chaque rôle, des règles qui évitent les erreurs et l'historique complet de chaque modification.", "Inventory": "Stock", "Invoice approval": "Validation des factures", "Purchase requests": "Demandes d'achat", "Deliveries": "Livraisons", "Returns": "Retours", "Several versions of the same Excel file, and nobody knows which is right": "Plusieurs versions du même fichier Excel, et personne ne sait laquelle est la bonne", "Anyone can change anything, including prices and stock": "Tout le monde peut tout modifier, y compris les prix et le stock", "\"Who changed this?\" has no answer": "« Qui a modifié ça ? » reste sans réponse", "Approvals lost in email threads and WhatsApp messages": "Des validations perdues dans les e-mails et les messages WhatsApp", "Map the process": "Cartographier le processus", "We watch how the work is done today and write the user stories with you.": "Nous observons comment le travail se fait aujourd'hui et rédigeons les besoins utilisateurs avec vous.", "Define roles": "Définir les rôles", "Who can see, create, change and approve what, written down before any code.": "Qui peut voir, créer, modifier et valider quoi, mis par écrit avant toute ligne de code.", "Build the core": "Construire le cœur", "Login, the main screens, search, validation and the database.": "Connexion, écrans principaux, recherche, contrôles et base de données.", "Test with users": "Tester avec les utilisateurs", "Your team uses it on real scenarios; we fix and adjust.": "Votre équipe l'utilise sur des cas réels ; nous corrigeons et ajustons.", "Go live": "Mise en service", "Import existing data, train the team, hand over the documentation.": "Import des données existantes, formation de l'équipe, remise de la documentation.", "Worked example: inventory & invoice manager": "Exemple détaillé : gestion du stock et des factures", "(fictional) tracks 120 products in three spreadsheets: one per warehouse plus a \"master\" copy. Stock-outs are discovered when a customer calls. Supplier invoices are approved by forwarding emails to the manager.": "(fictive) suit 120 produits dans trois tableurs : un par entrepôt plus une copie « maître ». Les ruptures sont découvertes quand un client appelle. Les factures fournisseurs sont validées en transférant des e-mails au responsable.", "Stock counts that don't match between files": "Des quantités en stock qui diffèrent d'un fichier à l'autre", "Stock-outs noticed too late": "Des ruptures repérées trop tard", "Approvals take days and get lost": "Des validations qui prennent des jours et se perdent", "No history of changes": "Aucun historique des modifications", "One stock figure, updated by every movement": "Un seul chiffre de stock, mis à jour à chaque mouvement", "\"Low stock\" list visible every morning": "Liste « stock bas » visible chaque matin", "One-click approval, visible to everyone concerned": "Validation en un clic, visible par toutes les personnes concernées", "Audit log: who, what, when": "Journal d'audit : qui, quoi, quand", "1 · Who can do what": "1 · Qui peut faire quoi", "Staff": "Employé", "Manager": "Responsable", "Admin": "Admin", "Search products, suppliers, invoices": "Rechercher produits, fournisseurs, factures", "Record goods received / shipped": "Enregistrer les entrées / sorties de marchandises", "Create or edit products and prices": "Créer ou modifier produits et prix", "Approve / reject supplier invoices": "Valider / rejeter les factures fournisseurs", "View the dashboard": "Voir le tableau de bord", "Manage users, read the audit log": "Gérer les utilisateurs, lire le journal d'audit", "Permissions are enforced by the server, not just hidden in the menu, and automated tests prove it.": "Les droits sont appliqués par le serveur, pas seulement cachés dans le menu, et des tests automatisés le prouvent.", "2 · A day in the application": "2 · Une journée dans l'application", "08:10 · Sami (Staff) checks low stock": "08:10 · Sami (Employé) vérifie les stocks bas", "Filters \"Low stock only\": Orange juice 1L has 6 units left (reorder level 20). He tells purchasing.": "Filtre « Stock bas uniquement » : il reste 6 unités de jus d'orange 1L (seuil 20). Il prévient les achats.", "10:30 · Sami records a delivery": "10:30 · Sami enregistre une livraison", "Receives 200 units. Stock goes from 6 → 206. Trying to ship 300 units later is refused: \"Not enough stock: 206 available, 300 requested\".": "Il reçoit 200 unités. Le stock passe de 6 → 206. Une sortie de 300 unités plus tard est refusée : « Stock insuffisant : 206 disponibles, 300 demandées ».", "11:00 · Mehdi (Manager) approves invoices": "11:00 · Mehdi (Responsable) valide les factures", "Three supplier invoices are pending. He approves two and rejects one with a comment.": "Trois factures fournisseurs sont en attente. Il en valide deux et en rejette une avec un commentaire.", "16:45 · Amira (Admin) reviews the day": "16:45 · Amira (Admin) passe la journée en revue", "The audit log lists every change, including Mehdi's approvals with time and details.": "Le journal d'audit liste chaque modification, y compris les validations de Mehdi avec l'heure et le détail.", "3 · What the audit log shows": "3 · Ce que montre le journal d'audit", "Time": "Heure", "User": "Utilisateur", "Entity": "Élément", "Detail": "Détail", "Sami (Staff)": "Sami (Employé)", "Mehdi (Manager)": "Mehdi (Responsable)", "PENDING → APPROVED": "EN ATTENTE → VALIDÉE", "PENDING → REJECTED": "EN ATTENTE → REJETÉE", "More internal tool examples": "Autres exemples d'outils internes", "🚚 Delivery tracking": "🚚 Suivi des livraisons", "Users": "Utilisateurs", "Drivers (mobile), dispatcher": "Chauffeurs (mobile), répartiteur", "Does": "Fonctions", "Assign routes, confirm delivery with photo & signature": "Attribuer les tournées, confirmer la livraison avec photo et signature", "No more \"was it delivered?\" phone calls": "Fini les appels « est-ce que c'est livré ? »", "↩️ Returns management": "↩️ Gestion des retours", "Sales, warehouse, quality": "Commercial, entrepôt, qualité", "Log the return reason, inspect, restock or write off": "Saisir le motif du retour, contrôler, remettre en stock ou mettre au rebut", "Return reasons measured, and credits issued faster": "Motifs de retour mesurés, avoirs émis plus vite", "🛒 Purchase requests": "🛒 Demandes d'achat", "All staff, managers, finance": "Tous les employés, responsables, finance", "Request, approve by amount threshold, track to delivery": "Demander, valider selon un seuil de montant, suivre jusqu'à la livraison", "Spending controlled without slowing people down": "Des dépenses maîtrisées sans ralentir les équipes", "The web application (works on desktop and tablet)": "L'application web (ordinateur et tablette)", "Roles, validation and audit log": "Rôles, contrôles et journal d'audit", "Automated tests and API documentation": "Tests automatisés et documentation de l'API", "User guide + team training": "Guide utilisateur + formation de l'équipe", "A walkthrough of the current process": "Une présentation du processus actuel", "Your existing files for data import": "Vos fichiers existants pour l'import des données", "1–2 people to test each week": "1 à 2 personnes pour tester chaque semaine", "Week 1: process mapping & roles": "Semaine 1 : cartographie du processus & rôles", "Weeks 2–3: build core screens": "Semaines 2–3 : développement des écrans principaux", "Weeks 4–5: user testing, data import, go-live": "Semaines 4–5 : tests utilisateurs, import des données, mise en service", "Service 3": "Service 3", "Turn the exports you already have into trustworthy numbers: cleaned data, clearly defined KPIs, dashboards, and a short monthly report that tells management where to act.": "Transformez les exports dont vous disposez déjà en chiffres fiables : données nettoyées, KPI clairement définis, tableaux de bord et un court rapport mensuel qui indique à la direction où agir.", "Sales performance": "Performance commerciale", "Slow-moving stock": "Stock à faible rotation", "Customer trends": "Tendances clients", "Supplier performance": "Performance fournisseurs", "Data quality": "Qualité des données", "The monthly report takes days of copy-paste in Excel": "Le rapport mensuel demande des jours de copier-coller dans Excel", "Two people calculate \"revenue\" and get two different figures": "Deux personnes calculent le « chiffre d'affaires » et obtiennent deux résultats différents", "Declining products are noticed only when it's too late": "Les produits en baisse ne sont repérés que trop tard", "Dirty data: duplicates, mixed date formats, typing errors": "Des données sales : doublons, formats de date mélangés, fautes de frappe", "Collect": "Collecter", "A CSV or Excel export from your ERP, POS or spreadsheets. No system change needed.": "Un export CSV ou Excel de votre ERP, de votre caisse ou de vos tableurs. Aucun changement de logiciel nécessaire.", "Clean": "Nettoyer", "Fix duplicates, dates, decimals and gaps. Every fix is logged and nothing is hidden.": "Corriger doublons, dates, décimales et valeurs manquantes. Chaque correction est tracée, rien n'est caché.", "Define KPIs": "Définir les KPI", "Agree on one written definition for each number, checked against your manual figures.": "S'accorder sur une définition écrite pour chaque indicateur, vérifiée par rapport à vos calculs manuels.", "Visualise": "Visualiser", "Dashboards for daily use and a self-service upload page.": "Des tableaux de bord pour le quotidien et une page d'import en libre-service.", "Report": "Rapport", "A 2-page monthly PDF that answers your key questions.": "Un PDF mensuel de 2 pages qui répond à vos questions clés.", "Worked example: 12 months of sales": "Exemple détaillé : 12 mois de ventes", "(fictional) exports 12 months of sales from its POS: about": "(fictive) exporte 12 mois de ventes depuis sa caisse : environ", "24,000 lines": "24 000 lignes", ", 40 products, 60 customers, 6 regions. The owner wants to know where sales are dropping and what is sitting in the warehouse.": ", 40 produits, 60 clients, 6 régions. Le dirigeant veut savoir où les ventes baissent et ce qui dort dans l'entrepôt.", "Two days of Excel work every month": "Deux jours de travail sur Excel chaque mois", "Duplicates and typing errors inflate the figures": "Doublons et fautes de frappe gonflent les chiffres", "The report shows totals, not problems": "Le rapport montre des totaux, pas des problèmes", "Upload → results in about a minute": "Import → résultats en une minute environ", "1,966 data issues found, fixed or flagged": "1 966 problèmes de données détectés, corrigés ou signalés", "The report names the products and regions to act on": "Le rapport nomme les produits et les régions sur lesquels agir", "The figures in this example come from a real run of the OpsPilot analytics pipeline on a synthetic dataset.": "Les chiffres de cet exemple proviennent d'une exécution réelle du pipeline d'analyse OpsPilot sur un jeu de données synthétique.", "1 · What the cleaning found": "1 · Ce que le nettoyage a trouvé", "Issue": "Problème", "Example": "Exemple", "Rows": "Lignes", "Comma used as decimal separator": "Virgule utilisée comme séparateur décimal", "Converted to 12.450": "Converti en 12.450", "Dates in DD/MM/YYYY": "Dates au format JJ/MM/AAAA", "Converted to 2026-02-15": "Converti en 2026-02-15", "Exact duplicate rows": "Lignes strictement identiques", "Same invoice line exported twice": "Même ligne de facture exportée deux fois", "Removed": "Supprimées", "Missing region": "Région manquante", "Empty cell": "Cellule vide", "Filled from the customer's usual region": "Complétée avec la région habituelle du client", "Negative quantity": "Quantité négative", "Kept, flagged as a return": "Conservée, marquée comme retour", "Abnormal quantity": "Quantité anormale", "1,200 instead of 12": "1 200 au lieu de 12", "Excluded from KPIs, listed for review": "Exclue des KPI, listée pour vérification", "2 · Headline KPIs": "2 · KPI principaux", "Total revenue (12 months)": "Chiffre d'affaires total (12 mois)", "8.63 M TND": "8,63 M TND", "September 2026": "Septembre 2026", "▼ 4.6% vs August": "▼ 4,6 % par rapport à août", "Orders": "Commandes", "Return rate": "Taux de retour", "3 · The answers management asked for": "3 · Les réponses demandées par la direction", "Where are sales declining?": "Où les ventes baissent-elles ?", "Last 3 months vs previous 3, drops over 30%": "3 derniers mois vs 3 précédents, baisses de plus de 30 %", "Previous": "Avant", "Recent": "Récent", "Change": "Évolution", "Which products are slow-moving?": "Quels produits tournent lentement ?", "Fewer than 60 units in 90 days": "Moins de 60 unités en 90 jours", "Units (90 days)": "Unités (90 jours)", "Days since last sale": "Jours depuis la dernière vente", "How we prove the numbers: the pipeline is tested on a small dataset whose totals are calculated by hand, and on synthetic data where the declining and slow products were planted on purpose. It found all 5 of each, with no false alarms.": "Comment nous prouvons les chiffres : le pipeline est testé sur un petit jeu de données dont les totaux sont calculés à la main, et sur des données synthétiques où des produits en baisse et à faible rotation ont été placés volontairement. Il a retrouvé les 5 de chaque catégorie, sans fausse alerte.", "4 · KPI definitions (written once, used everywhere)": "4 · Définitions des KPI (écrites une fois, utilisées partout)", "KPI": "KPI", "Definition": "Définition", "Revenue": "Chiffre d'affaires", "quantity × unit price × (1 − discount), returns subtracted, abnormal rows excluded": "quantité × prix unitaire × (1 − remise), retours déduits, lignes anormales exclues", "Month-on-month growth": "Évolution mensuelle", "(revenue last month − revenue previous month) ÷ revenue previous month": "(CA du dernier mois − CA du mois précédent) ÷ CA du mois précédent", "Declining product": "Produit en baisse", "Revenue of the last 3 months ≥ 30% below the 3 months before, with at least 1,000 TND before": "CA des 3 derniers mois inférieur d'au moins 30 % aux 3 mois précédents, avec au moins 1 000 TND avant", "Slow-moving product": "Produit à faible rotation", "Fewer than 60 units sold in the last 90 days": "Moins de 60 unités vendues au cours des 90 derniers jours", "Return lines ÷ all lines": "Lignes de retour ÷ total des lignes", "More analytics examples": "Autres exemples d'analyse", "👥 Customers at risk": "👥 Clients à risque", "Data": "Données", "Sales by customer": "Ventes par client", "Finds": "Détecte", "Regular customers who haven't ordered for 2× their usual interval": "Les clients réguliers qui n'ont pas commandé depuis 2× leur délai habituel", "Sales team calls them before they switch supplier": "L'équipe commerciale les appelle avant qu'ils ne changent de fournisseur", "🏭 Supplier performance": "🏭 Performance fournisseurs", "Purchase orders & receipts": "Bons de commande & réceptions", "Late deliveries, short deliveries and price drift per supplier": "Retards, livraisons incomplètes et dérive des prix par fournisseur", "Facts on the table for the next negotiation": "Des faits concrets pour la prochaine négociation", "💰 Margin by product": "💰 Marge par produit", "Sales + purchase costs": "Ventes + coûts d'achat", "Best sellers with thin or negative margins": "Les meilleures ventes à marge faible ou négative", "Price adjustments where they matter most": "Des ajustements de prix là où ils comptent le plus", "Cleaned dataset + issues log": "Données nettoyées + journal des problèmes", "Dashboard (self-service or BI)": "Tableau de bord (libre-service ou BI)", "A 2-page monthly report (PDF)": "Un rapport mensuel de 2 pages (PDF)", "KPI definitions document": "Document de définition des KPI", "An export of 6–12 months of data": "Un export de 6 à 12 mois de données", "Your 3–5 key questions": "Vos 3 à 5 questions clés", "One known figure to check against": "Un chiffre connu pour comparer", "Days 1–3: data review & questions": "Jours 1–3 : revue des données & questions", "Days 4–7: cleaning, KPIs, validation": "Jours 4–7 : nettoyage, KPI, validation", "Week 2: dashboard, report, walkthrough": "Semaine 2 : tableau de bord, rapport, présentation", "Optional": "Optionnel", "The combined solution": "La solution combinée", "When the three services are connected, each makes the others more valuable, but none of them depends on the others. Here is one month at a fictional distributor that uses all three.": "Quand les trois services sont connectés, chacun renforce la valeur des autres, sans qu'aucun n'en dépende. Voici un mois chez un distributeur fictif qui utilise les trois.", "Every day · Automation": "Chaque jour · Automatisation", "Supplier invoices are checked and sent straight into the internal tool as \"pending\", tagged 🤖 auto. Problem rows go to the accounting assistant with reasons.": "Les factures fournisseurs sont vérifiées et envoyées directement dans l'outil interne « en attente », marquées 🤖 auto. Les lignes en erreur partent à l'assistante comptable avec leur motif.", "Every day · Internal tool": "Chaque jour · Outil interne", "Managers approve invoices in one click; staff record stock movements; the audit log keeps the history.": "Les responsables valident les factures en un clic ; les employés enregistrent les mouvements de stock ; le journal d'audit garde l'historique.", "Every week · Analytics": "Chaque semaine · Analyse", "The operations dashboard shows pending and overdue invoices, low stock, and how many invoices were automated vs typed.": "Le tableau de bord des opérations montre les factures en attente et en retard, les stocks bas, et la part des factures automatisées par rapport aux factures saisies.", "1st of the month · Report": "Le 1er du mois · Rapport", "The management report lists declining products, slow movers, supplier spend and data issues, ready for the monthly meeting.": "Le rapport de gestion liste les produits en baisse, ceux à faible rotation, les dépenses fournisseurs et les problèmes de données, prêt pour la réunion mensuelle.", "Built to stay independent": "Conçus pour rester indépendants", "If the application is offline, the automation keeps saving invoices to its own tables, and nothing is lost": "Si l'application est hors ligne, l'automatisation continue d'enregistrer les factures dans ses propres tables, et rien n'est perdu", "The analytics can always run from a plain CSV export": "L'analyse peut toujours tourner à partir d'un simple export CSV", "The application works fine with manual entry only": "L'application fonctionne très bien avec la seule saisie manuelle", "Small pilot first, then grow": "D'abord un petit pilote, ensuite on grandit", "Discovery call": "Appel de découverte", "30 minutes about one process: who does it, how long it takes, what goes wrong.": "30 minutes sur un processus : qui le fait, combien de temps il prend, ce qui coince.", "Demo on your data": "Démo sur vos données", "Within about a week, a working demo on an anonymised sample of your files.": "En une semaine environ, une démo fonctionnelle sur un échantillon anonymisé de vos fichiers.", "Paid pilot": "Pilote payant", "Fixed scope, fixed price, 2–4 weeks, with success criteria agreed in writing.": "Périmètre fixe, prix fixe, 2 à 4 semaines, avec des critères de réussite convenus par écrit.", "Extend or support": "Étendre ou accompagner", "More processes, another service, or a monthly support plan.": "D'autres processus, un autre service ou un contrat de support mensuel.", "Agreed in writing before we start": "Convenu par écrit avant de commencer", "Your data is yours": "Vos données vous appartiennent", ": deleted from our systems at the end unless agreed otherwise": " : supprimées de nos systèmes à la fin, sauf accord contraire", "Hosting account": "Compte d'hébergement", ": ideally in your name, with us as administrator": " : idéalement à votre nom, avec nous comme administrateur", "Recurring costs": "Coûts récurrents", "(hosting, any AI usage) are listed upfront": "(hébergement, éventuel usage d'IA) annoncés dès le départ", "Support": "Support", ": what's included, response time, and what counts as a change": " : ce qui est inclus, le délai de réponse et ce qui compte comme une évolution", "Questions": "Questions", "Frequently asked": "Questions fréquentes", "Do we have to replace our ERP or accounting software?": "Faut-il remplacer notre ERP ou notre logiciel comptable ?", "No. We work around what you already have: exports, emails, shared folders. When your software offers an import or an API, we can feed data into it directly.": "Non. Nous travaillons avec ce que vous avez déjà : exports, e-mails, dossiers partagés. Si votre logiciel propose un import ou une API, nous pouvons l'alimenter directement.", "What if the AI makes a mistake?": "Et si l'IA se trompe ?", "AI never has the final word. It only suggests values (for example, from a scanned invoice), and the same validation rules check them. Anything uncertain is sent to a person. The system also works with AI turned off.": "L'IA n'a jamais le dernier mot. Elle propose seulement des valeurs (par exemple à partir d'une facture scannée), et les mêmes règles de validation les vérifient. Tout ce qui est incertain est envoyé à une personne. Le système fonctionne aussi avec l'IA désactivée.", "Is our data safe?": "Nos données sont-elles en sécurité ?", "Demos use synthetic data. For pilots, your data stays in an environment we agree on together, access is limited by role, every change is logged, and the data handling is written into the agreement.": "Les démos utilisent des données synthétiques. Pour les pilotes, vos données restent dans un environnement convenu ensemble, l'accès est limité par rôle, chaque modification est tracée, et le traitement des données est inscrit dans l'accord.", "Can we buy only one service?": "Peut-on acheter un seul service ?", "Yes. That is how most clients start. Each service is designed to work on its own.": "Oui. C'est ainsi que la plupart des clients commencent. Chaque service est conçu pour fonctionner seul.", "What happens after the pilot?": "Que se passe-t-il après le pilote ?", "You keep what was delivered. You can then extend it to more processes, add another service, or take a monthly support plan, or stop there.": "Vous gardez ce qui a été livré. Vous pouvez ensuite l'étendre à d'autres processus, ajouter un autre service, souscrire un contrat de support mensuel, ou vous arrêter là.", "Who owns the code and the workflows?": "À qui appartiennent le code et les workflows ?", "This is agreed in the proposal. Typically, the client receives full rights to what was built specifically for them, while reusable building blocks remain ours, licensed to them.": "C'est précisé dans la proposition. En général, le client reçoit tous les droits sur ce qui a été développé spécifiquement pour lui, tandis que les briques réutilisables restent les nôtres, sous licence pour lui.", "Which task takes your team too much time?": "Quelle tâche prend trop de temps à votre équipe ?", "Tell us about one process. If there's a fit, you'll see a working demo on your own sample data.": "Parlez-nous d'un processus. Si cela correspond, vous verrez une démo fonctionnelle sur vos propres données.", "Book a 20-minute call": "Réserver un appel de 20 minutes", "View the presentation": "Voir la présentation", "OpsPilot AI · AI Automation & Business Software · Examples use fictional companies and synthetic data.": "OpsPilot AI · Automatisation IA & logiciels métier · Les exemples utilisent des entreprises fictives et des données synthétiques.", "From: OpsPilot Automation Subject: [OpsPilot] invoices_0915.csv: 45 saved, 5 rejected, 1 duplicate Invoice import summary • Rows read: 51 • Saved: 45 (total 612,480.315 TND) • Rejected: 5 • Duplicates skipped: 1 Needs attention 1. Row 9 (INV-2026-00008): invoice_date \"31/02/2026\" is not a valid YYYY-MM-DD date 2. Row 17 (INV-2026-00016): amount_ttc does not equal amount_ht + vat_amount 3. Row 33 (INV-2026-00032): due_date is before invoice_date 4. …": "De :     Automatisation OpsPilot\nObjet :  [OpsPilot] invoices_0915.csv : 45 enregistrées, 5 rejetées, 1 doublon\n\nRécapitulatif de l'import des factures\n  • Lignes lues : 51\n  • Enregistrées : 45 (total 612 480,315 TND)\n  • Rejetées : 5\n  • Doublons ignorés : 1\n\nÀ traiter\n  1. Ligne 9  (INV-2026-00008) : la date « 31/02/2026 » n'est pas une date AAAA-MM-JJ valide\n  2. Ligne 17 (INV-2026-00016) : le montant TTC n'est pas égal au HT + TVA\n  3. Ligne 33 (INV-2026-00032) : l'échéance est antérieure à la date de facture\n  4. …"};
+  const i18n = { text: [], attrs: [] };
+  (function collect() {
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    while (walker.nextNode()) {
+      const n = walker.currentNode;
+      const key = n.nodeValue.replace(/\s+/g, ' ').trim();
+      if (!FR[key]) continue;
+      const fr = FR[key].includes('\n')
+        ? FR[key]
+        : n.nodeValue.match(/^\s*/)[0] + FR[key] + n.nodeValue.match(/\s*$/)[0];
+      i18n.text.push({ n, en: n.nodeValue, fr });
+    }
+    document.querySelectorAll('[aria-label],[title]').forEach((el) => {
+      ['aria-label', 'title'].forEach((a) => {
+        const v = el.getAttribute(a);
+        if (v && FR[v]) i18n.attrs.push({ el, a, en: v, fr: FR[v] });
+      });
+    });
+  })();
+
+  let lang = 'en';
+  function setLang(l) {
+    lang = l === 'fr' ? 'fr' : 'en';
+    document.documentElement.lang = lang;
+    document.title = lang === 'fr' ? 'Guide des services OpsPilot' : 'OpsPilot Services Guide';
+    i18n.text.forEach((t) => { t.n.nodeValue = t[lang]; });
+    i18n.attrs.forEach((t) => t.el.setAttribute(t.a, t[lang]));
+    document.getElementById('lang').textContent = lang === 'fr' ? 'EN' : 'FR';
+    document.querySelectorAll('a[href^="mailto:"]').forEach((a) => {
+      a.href = 'mailto:?subject=' + encodeURIComponent(lang === 'fr' ? 'OpsPilot AI - appel de 20 minutes' : 'OpsPilot AI - 20-minute call');
+    });
+    document.querySelectorAll('a[href^="presentation.html"]').forEach((a) => { a.href = 'presentation.html?lang=' + lang; });
+    if (window.parent !== window) parent.postMessage({ type: 'opspilot-lang', lang }, '*');
+    try { localStorage.setItem('opspilot-lang', lang); } catch (e) {}
+  }
+  document.getElementById('lang').onclick = () => setLang(lang === 'fr' ? 'en' : 'fr');
+  addEventListener('keydown', (e) => {
+    if (e.key.toLowerCase() === 'l' && !e.target.closest('input,textarea')) setLang(lang === 'fr' ? 'en' : 'fr');
+  });
+  let initialLang = new URLSearchParams(location.search).get('lang');
+  try { initialLang = initialLang || localStorage.getItem('opspilot-lang'); } catch (e) {}
+  setLang(initialLang || (navigator.language || '').slice(0, 2));
+</script>
+<script>
+  const root = document.documentElement;
+  try { const t = localStorage.getItem('opspilot-theme'); if (t) root.dataset.theme = t; } catch (e) {}
+  document.getElementById('theme').onclick = () => {
+    const dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    root.dataset.theme = dark ? 'light' : 'dark';
+    try { localStorage.setItem('opspilot-theme', root.dataset.theme); } catch (e) {}
+  };
+
+  // highlight the section currently in view
+  const links = [...document.querySelectorAll('#links a')];
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach((en) => {
+      if (en.isIntersecting) links.forEach((a) => a.classList.toggle('on', a.getAttribute('href') === '#' + en.target.id));
+    });
+  }, { rootMargin: '-40% 0px -55% 0px' });
+  links.forEach((a) => { const s = document.querySelector(a.getAttribute('href')); if (s) obs.observe(s); });
+</script>
+<script>
+  /* ---------- bridge: lets index.html switch pages and keep language/theme in sync ---------- */
+  (function () {
+    if (window.parent === window) return;
+    document.documentElement.classList.add('embedded');
+    document.head.insertAdjacentHTML('beforeend', '<style>.embedded .nav .brand, .embedded .top .brand { display: none; }</style>');
+    const PAGES = { 'presentation.html': 'presentation', 'services.html': 'services' };
+    document.addEventListener('click', (e) => {
+      const a = e.target.closest('a[href]');
+      if (!a) return;
+      const href = a.getAttribute('href');
+      const page = PAGES[href.split(/[?#]/)[0]];
+      if (page) {
+        e.preventDefault();
+        parent.postMessage({ type: 'opspilot-open', page }, '*');
+      } else if (href.length > 1 && href.startsWith('#')) {
+        const target = document.getElementById(href.slice(1));
+        if (target) { e.preventDefault(); target.scrollIntoView({ behavior: 'smooth' }); }
+      }
+    });
+
+    const root = document.documentElement;
+    let lastTheme = root.dataset.theme;
+    new MutationObserver(() => {
+      if (root.dataset.theme === lastTheme) return;
+      lastTheme = root.dataset.theme;
+      parent.postMessage({ type: 'opspilot-theme', theme: lastTheme }, '*');
+    }).observe(root, { attributes: true, attributeFilter: ['data-theme'] });
+
+    addEventListener('message', (e) => {
+      const d = e.data || {};
+      if (d.type === 'opspilot-set-lang' && d.lang !== lang) setLang(d.lang);
+      if (d.type === 'opspilot-set-theme' && d.theme && d.theme !== root.dataset.theme) {
+        lastTheme = d.theme;
+        root.dataset.theme = d.theme;
+      }
+    });
+    parent.postMessage({ type: 'opspilot-lang', lang }, '*');
+    if (root.dataset.theme) parent.postMessage({ type: 'opspilot-theme', theme: root.dataset.theme }, '*');
+  })();
+</script>
+</body>
+</html>
