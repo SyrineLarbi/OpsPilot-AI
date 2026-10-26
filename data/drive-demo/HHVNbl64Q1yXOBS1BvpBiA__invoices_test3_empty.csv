@@ -1,0 +1,1 @@
+invoice_number,supplier_name,supplier_tax_id,invoice_date,due_date,currency,amount_ht,vat_rate,vat_amount,amount_ttc

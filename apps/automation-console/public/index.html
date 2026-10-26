@@ -1,0 +1,959 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpsPilot · Factures</title>
+<link rel="icon" href="data:,">
+<meta name="description" content="Scanner ou importer une facture, la classer par département et suivre les dépenses.">
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f5f6f8; --surface: #ffffff; --surface-2: #f3f4f7; --line: #e4e6ec; --text: #14161f; --muted: #5d6275; --faint: #8a8fa1;
+    --brand: #4f46e5; --brand-ink: #ffffff; --brand-soft: #eef0ff;
+    --series: #2a78d6; --series-muted: #b9bdc9; --grid: #eceef2;
+    --warn: #b45309; --warn-soft: #fff4e0; --warn-line: #f2c879; --bad: #c62828; --bad-soft: #fdecec; --ok: #047857; --ok-soft: #e6f6ef;
+    --shadow: 0 1px 2px rgba(20,22,31,.04), 0 4px 16px rgba(20,22,31,.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #101114; --surface: #1a1b1f; --surface-2: #222328; --line: #2e3037; --text: #eeeff2; --muted: #a6a9b6; --faint: #7c7f8c;
+      --brand: #8b85ff; --brand-ink: #101114; --brand-soft: #262447;
+      --series: #3987e5; --series-muted: #4a4d57; --grid: #2a2c33;
+      --warn: #f0b04a; --warn-soft: #33270f; --warn-line: #7a5a1d; --bad: #f07171; --bad-soft: #3a1a1d; --ok: #3fcf9a; --ok-soft: #10302a;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #101114; --surface: #1a1b1f; --surface-2: #222328; --line: #2e3037; --text: #eeeff2; --muted: #a6a9b6; --faint: #7c7f8c;
+    --brand: #8b85ff; --brand-ink: #101114; --brand-soft: #262447;
+    --series: #3987e5; --series-muted: #4a4d57; --grid: #2a2c33;
+    --warn: #f0b04a; --warn-soft: #33270f; --warn-line: #7a5a1d; --bad: #f07171; --bad-soft: #3a1a1d; --ok: #3fcf9a; --ok-soft: #10302a;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 "Segoe UI", system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+  button, input, select { font: inherit; color: inherit; }
+  [hidden] { display: none !important; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 16px; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  /* header */
+  header { background: var(--surface); border-bottom: 1px solid var(--line); }
+  header .wrap { display: flex; align-items: center; gap: 10px; height: 58px; }
+  .logo { width: 30px; height: 30px; border-radius: 8px; background: var(--brand); color: var(--brand-ink); display: grid; place-items: center; font-weight: 800; }
+  .company { font-weight: 650; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .company small { display: block; font-weight: 400; color: var(--muted); font-size: 12px; line-height: 1.2; }
+  .spacer { flex: 1; }
+  @media (max-width: 560px) { .hide-sm, .company small { display: none; } }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 8px 14px; cursor: pointer; text-decoration: none; color: var(--text); white-space: nowrap; }
+  .btn:hover { border-color: var(--brand); }
+  .btn:focus-visible, input:focus-visible, select:focus-visible, .bar-row:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+  .btn.primary { background: var(--brand); color: var(--brand-ink); border-color: transparent; font-weight: 600; }
+  .btn.ghost { border-color: transparent; background: transparent; }
+  .btn.ghost:hover { background: var(--surface-2); }
+  .btn.danger { color: var(--bad); }
+  .btn:disabled { opacity: .55; cursor: wait; }
+  .btn svg { width: 18px; height: 18px; flex: none; }
+
+  .menu { position: relative; }
+  .menu-list { position: absolute; right: 0; top: calc(100% + 6px); background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); min-width: 230px; padding: 6px; z-index: 20; }
+  .menu-list .who { padding: 8px 10px 10px; border-bottom: 1px solid var(--line); margin-bottom: 4px; font-size: 13px; }
+  .menu-list .who span { color: var(--muted); display: block; }
+  .menu-list button { display: block; width: 100%; text-align: left; border: 0; background: transparent; padding: 8px 10px; border-radius: 8px; cursor: pointer; }
+  .menu-list button:hover { background: var(--surface-2); }
+
+  main { padding: 24px 0 64px; display: grid; gap: 20px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); padding: 20px; min-width: 0; }
+  h2 { font-size: 15px; margin: 0; font-weight: 650; }
+  .sub { color: var(--muted); font-size: 13px; margin: 2px 0 0; }
+
+  /* add an invoice */
+  .add { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; border: 2px dashed var(--line); background: var(--surface); border-radius: 16px; padding: 22px; transition: border-color .15s, background .15s; }
+  .add.drag { border-color: var(--brand); background: var(--brand-soft); }
+  .add h1 { font-size: 20px; margin: 0; letter-spacing: -.01em; }
+  .add .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  .add .btn { padding: 12px 18px; font-size: 15px; }
+  .add .upload-dep { padding: 12px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); font-size: 14px; max-width: 220px; }
+  @media (max-width: 680px) { .add { grid-template-columns: 1fr; } .add .actions .btn { flex: 1; } .add .upload-dep { flex-basis: 100%; max-width: none; } }
+
+  /* filters */
+  .toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .seg { display: inline-flex; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 3px; }
+  .seg button { border: 0; background: transparent; padding: 6px 12px; border-radius: 7px; cursor: pointer; color: var(--muted); }
+  .seg button[aria-pressed="true"] { background: var(--brand-soft); color: var(--text); font-weight: 600; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 6px 5px 12px; border-radius: 99px; background: var(--brand-soft); font-size: 13px; font-weight: 600; }
+  .chip button { border: 0; background: transparent; cursor: pointer; width: 22px; height: 22px; border-radius: 50%; color: var(--muted); }
+  .chip button:hover { background: var(--surface); }
+
+  /* KPIs */
+  .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .kpi .label { color: var(--muted); font-size: 13px; }
+  .kpi .value { font-size: 26px; font-weight: 700; letter-spacing: -.02em; margin-top: 2px; }
+  .kpi .value small { font-size: 14px; font-weight: 500; color: var(--muted); margin-left: 4px; }
+  .kpi .note { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .kpi .note button { border: 0; background: none; padding: 0; color: var(--warn); cursor: pointer; text-decoration: underline; font-size: 12px; }
+  @media (max-width: 680px) { .kpis { grid-template-columns: 1fr 1fr; } .kpis .kpi:first-child { grid-column: 1 / -1; } }
+
+  /* charts */
+  .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 860px) { .charts { grid-template-columns: 1fr; } }
+  .chart-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 14px; }
+  .empty { color: var(--muted); text-align: center; padding: 36px 8px; font-size: 13px; }
+
+  .bars { display: grid; gap: 2px; }
+  .bar-row { display: grid; grid-template-columns: minmax(90px, 34%) 1fr; gap: 12px; align-items: center; padding: 6px 6px; margin: 0 -6px; border-radius: 8px; cursor: pointer; border: 0; background: transparent; text-align: left; width: calc(100% + 12px); }
+  .bar-row:hover { background: var(--surface-2); }
+  .bar-row .name { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bar-row .track { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .bar-row .fill { height: 14px; background: var(--series); border-radius: 0 4px 4px 0; min-width: 2px; flex: none; transition: opacity .15s; }
+  .bar-row .fill.none { background: var(--series-muted); }
+  .bar-row .val { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .bars.has-selection .bar-row:not(.selected) .fill { opacity: .3; }
+  .bar-row.selected .name { font-weight: 650; }
+
+  .cols { position: relative; height: 210px; display: grid; grid-template-rows: 1fr auto; }
+  .cols .plot { position: relative; display: flex; align-items: flex-end; gap: 6px; padding-left: 44px; border-bottom: 1px solid var(--line); }
+  .cols .gridline { position: absolute; left: 44px; right: 0; border-top: 1px solid var(--grid); }
+  .cols .tick { position: absolute; left: 0; width: 38px; text-align: right; font-size: 11px; color: var(--faint); transform: translateY(-50%); }
+  .cols .col { flex: 1; height: 100%; display: flex; align-items: flex-end; justify-content: center; cursor: default; position: relative; z-index: 1; }
+  .cols .col:hover { background: var(--surface-2); border-radius: 6px 6px 0 0; }
+  .cols .col .c { width: 100%; max-width: 30px; background: var(--series); border-radius: 4px 4px 0 0; }
+  .cols .col.current .c { background: var(--series); }
+  .cols .labels { display: flex; gap: 6px; padding-left: 44px; }
+  .cols .labels span { flex: 1; text-align: center; font-size: 11px; color: var(--faint); padding-top: 6px; overflow: hidden; }
+  .cols .col, .cols .labels span { min-width: 0; }
+  @media (max-width: 480px) { .cols .labels span:nth-child(even) { visibility: hidden; } .cols .plot, .cols .labels { gap: 3px; } }
+
+  .tooltip { position: fixed; z-index: 50; pointer-events: none; background: var(--text); color: var(--surface); padding: 7px 10px; border-radius: 8px; font-size: 12px; line-height: 1.4; box-shadow: var(--shadow); max-width: 240px; }
+  .tooltip b { display: block; font-size: 13px; }
+
+  /* table */
+  .table-head { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+  .search { flex: 1; min-width: 200px; max-width: 360px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+  .filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; margin-bottom: 12px; }
+  .filters label { display: grid; gap: 3px; font-size: 12px; color: var(--muted); }
+  .filters select, .filters input { padding: 7px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); min-width: 0; }
+  .filters select { max-width: 230px; }
+  .filters .link { border: 0; background: none; color: var(--brand); cursor: pointer; padding: 8px 4px; font-size: 13px; }
+  .selbar { display: flex; gap: 12px; align-items: center; padding: 8px 12px; margin-bottom: 12px; border-radius: 10px; background: var(--brand-soft); font-size: 13px; }
+  .selbar button { border: 0; background: none; color: var(--brand); cursor: pointer; font-weight: 600; padding: 0; }
+  td.sel, th.sel { width: 36px; padding-right: 0; }
+  td.sel input, th.sel input { width: 16px; height: 16px; cursor: pointer; accent-color: var(--brand); }
+  tbody tr.picked { background: var(--brand-soft); }
+  .table-wrap { overflow-x: auto; margin: 0 -20px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th { text-align: left; font-weight: 600; color: var(--muted); font-size: 12px; padding: 8px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  td { padding: 10px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th:first-child, td:first-child { padding-left: 20px; } th:last-child, td:last-child { padding-right: 20px; }
+  tbody tr { cursor: pointer; user-select: none; } tbody tr:hover { background: var(--surface-2); }
+  .edit-btn { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 4px 10px; font-size: 12px; cursor: pointer; color: var(--muted); }
+  .edit-btn:hover { border-color: var(--brand); color: var(--text); }
+  td.r, th.r { text-align: right; }
+  td.supplier { max-width: 240px; overflow: hidden; text-overflow: ellipsis; }
+  .tag { display: inline-block; padding: 2px 9px; border-radius: 99px; background: var(--surface-2); border: 1px solid var(--line); font-size: 12px; }
+  .tag.none { background: var(--warn-soft); border-color: var(--warn-line); color: var(--warn); }
+  a.doc { color: var(--brand); text-decoration: none; font-weight: 600; } a.doc:hover { text-decoration: underline; }
+  .more { text-align: center; margin-top: 14px; }
+  .count { color: var(--muted); font-size: 13px; }
+
+  /* dialogs */
+  dialog { border: 0; padding: 0; border-radius: 18px; background: var(--surface); color: var(--text); box-shadow: 0 20px 60px rgba(0,0,0,.3); width: min(980px, calc(100vw - 24px)); max-height: calc(100vh - 24px); }
+  dialog::backdrop { background: rgba(10,12,20,.5); }
+  dialog.small { width: min(460px, calc(100vw - 24px)); }
+  dialog.medium { width: min(640px, calc(100vw - 24px)); }
+  .d-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 16px 20px; border-bottom: 1px solid var(--line); }
+  .d-head h2 { font-size: 17px; }
+  .d-body { padding: 20px; overflow: auto; max-height: calc(100vh - 160px); }
+  .d-foot { display: flex; gap: 10px; justify-content: flex-end; align-items: center; padding: 14px 20px; border-top: 1px solid var(--line); flex-wrap: wrap; }
+  .review { display: grid; grid-template-columns: 1.1fr 1fr; gap: 20px; }
+  @media (max-width: 760px) { .review { grid-template-columns: 1fr; } }
+  .preview { background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; min-height: 420px; display: grid; place-items: center; overflow: hidden; }
+  .preview img { max-width: 100%; max-height: 62vh; display: block; }
+  .preview iframe { width: 100%; height: 62vh; border: 0; background: #fff; }
+  .preview .empty { padding: 20px; }
+  @media (max-width: 760px) { .preview { min-height: 220px; } .preview iframe { height: 45vh; } }
+
+  .field { display: grid; gap: 5px; margin-bottom: 14px; }
+  .field label { font-size: 13px; font-weight: 600; }
+  .field input, .field select { width: 100%; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+  .field.check input, .field.check select { border-color: var(--warn-line); background: var(--warn-soft); }
+  .field .hint { font-size: 12px; color: var(--warn); }
+  .row2 { display: grid; grid-template-columns: 1fr 110px; gap: 10px; }
+  .notice { padding: 10px 12px; border-radius: 10px; font-size: 13px; margin-bottom: 14px; }
+  .notice.warn { background: var(--warn-soft); color: var(--warn); }
+  .notice.bad { background: var(--bad-soft); color: var(--bad); }
+  .notice.ok { background: var(--ok-soft); color: var(--ok); }
+  .notice ul { margin: 4px 0 0; padding-left: 18px; }
+  .loading { display: grid; place-items: center; gap: 12px; padding: 60px 10px; color: var(--muted); text-align: center; }
+  .spinner { width: 34px; height: 34px; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--brand); animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .checkline { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; color: var(--muted); }
+
+  .camera video { width: 100%; max-height: 65vh; background: #000; border-radius: 12px; display: block; }
+
+  .dep-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+  .dep-list .chip { background: var(--surface-2); border: 1px solid var(--line); font-weight: 500; }
+  .dep-list .chip small { color: var(--muted); }
+  .inline { display: flex; gap: 8px; } .inline input { flex: 1; min-width: 0; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+  .users { width: 100%; margin-bottom: 12px; } .users td { padding: 8px 4px; cursor: default; } .users tr:hover { background: none; }
+  .section-title { font-size: 13px; font-weight: 650; margin: 18px 0 8px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .section-title:first-child { margin-top: 0; }
+  .user-form { display: grid; grid-template-columns: 1fr 1fr 110px auto; gap: 8px; }
+  .user-form input, .user-form select { padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); min-width: 0; }
+  @media (max-width: 600px) { .user-form { grid-template-columns: 1fr 1fr; } }
+
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--text); color: var(--surface); padding: 12px 16px; border-radius: 12px; box-shadow: var(--shadow); z-index: 60; display: flex; gap: 14px; align-items: center; max-width: calc(100vw - 32px); }
+  .toast a { color: inherit; font-weight: 700; }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="logo" aria-hidden="true">O</div>
+    <div class="company" id="company">OpsPilot<small>Factures fournisseurs</small></div>
+    <div class="spacer"></div>
+    <button class="btn ghost" id="open-settings" hidden title="Paramètres de la société">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      <span class="hide-sm">Paramètres</span>
+    </button>
+    <div class="menu">
+      <button class="btn ghost" id="user-btn" aria-haspopup="true" aria-expanded="false"><span id="user-name">…</span> ▾</button>
+      <div class="menu-list" id="user-menu" hidden>
+        <div class="who"><b id="menu-name"></b><span id="menu-email"></span></div>
+        <button id="open-password">Changer le mot de passe</button>
+        <button id="logout">Se déconnecter</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- 1. add an invoice -->
+  <section class="add" id="dropzone" aria-labelledby="add-title">
+    <div>
+      <h1 id="add-title">Ajouter une facture</h1>
+      <p class="sub">Scannez-la avec la caméra ou importez un PDF / une photo. Vous vérifiez le résumé avant l'enregistrement dans le Drive.</p>
+    </div>
+    <div class="actions">
+      <select id="upload-dep" class="upload-dep" aria-label="Département des factures ajoutées" title="Département des factures ajoutées"></select>
+      <button class="btn primary" id="scan-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        Scanner
+      </button>
+      <button class="btn" id="upload-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Importer un fichier
+      </button>
+    </div>
+    <input type="file" id="file-input" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" multiple hidden>
+    <input type="file" id="photo-input" accept="image/*" capture="environment" hidden>
+  </section>
+
+  <!-- 2. filters -->
+  <div class="toolbar">
+    <div class="seg" role="group" aria-label="Période" id="period">
+      <button data-p="month">Ce mois</button>
+      <button data-p="quarter">Trimestre</button>
+      <button data-p="year">Année</button>
+      <button data-p="all">Tout</button>
+    </div>
+    <span class="chip" id="dep-chip" hidden><span id="dep-chip-name"></span><button aria-label="Retirer le filtre département" id="dep-chip-clear">✕</button></span>
+  </div>
+
+  <!-- 3. KPIs -->
+  <section class="kpis" aria-label="Chiffres clés">
+    <div class="card kpi"><div class="label">Total des factures</div><div class="value num" id="k-total">–</div><div class="note" id="k-total-note"></div></div>
+    <div class="card kpi"><div class="label">Factures</div><div class="value num" id="k-count">–</div><div class="note" id="k-count-note"></div></div>
+    <div class="card kpi"><div class="label">Fournisseurs</div><div class="value num" id="k-suppliers">–</div><div class="note" id="k-dep-note"></div></div>
+  </section>
+
+  <!-- 4. charts -->
+  <section class="charts">
+    <div class="card">
+      <div class="chart-head"><div><h2>Dépenses par département</h2><p class="sub" id="dep-sub">Cliquez sur un département pour filtrer</p></div></div>
+      <div class="bars" id="dep-chart"></div>
+    </div>
+    <div class="card">
+      <div class="chart-head"><div><h2>Dépenses par mois</h2><p class="sub" id="month-sub">12 derniers mois</p></div></div>
+      <div id="month-chart"></div>
+    </div>
+  </section>
+
+  <!-- 5. invoices -->
+  <section class="card">
+    <div class="table-head">
+      <h2>Factures</h2><span class="count" id="count"></span>
+      <div class="spacer"></div>
+      <input class="search" id="search" type="search" placeholder="Rechercher : n°, fournisseur, département…" aria-label="Rechercher">
+      <button class="btn" id="export" type="button">Exporter Excel</button>
+    </div>
+    <div class="filters">
+      <label>Fournisseur<select id="f-filter-supplier"><option value="">Tous</option></select></label>
+      <label>Département<select id="f-filter-dep"><option value="">Tous</option></select></label>
+      <label>Du<input type="date" id="f-filter-from"></label>
+      <label>Au<input type="date" id="f-filter-to"></label>
+      <button type="button" class="link" id="f-filter-reset" hidden>Réinitialiser les filtres</button>
+    </div>
+    <div class="selbar" id="selbar" hidden><span id="sel-count"></span><span class="count">Maj + clic pour sélectionner une plage</span><button type="button" id="sel-clear">Tout désélectionner</button></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th class="sel"><input type="checkbox" id="sel-all" aria-label="Sélectionner les factures affichées"></th><th>N° facture</th><th>Fournisseur</th><th>Date</th><th class="r">Total</th><th>Département</th><th>Document</th><th></th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <div class="empty" id="no-rows" hidden>Aucune facture pour cette sélection.</div>
+    <div class="more" id="more" hidden><button class="btn" id="more-btn">Afficher plus</button></div>
+  </section>
+</main>
+
+<!-- review / edit -->
+<dialog id="review">
+  <form method="dialog" id="review-form" novalidate>
+    <div class="d-head"><h2 id="review-title">Vérifier la facture</h2><button type="button" class="btn ghost" data-close aria-label="Fermer">✕</button></div>
+    <div class="d-body">
+      <div class="review">
+        <div class="preview" id="preview"></div>
+        <div>
+          <div id="review-loading" class="loading"><div class="spinner"></div><div>Lecture de la facture…</div></div>
+          <div id="review-fields" hidden>
+            <div id="review-notice"></div>
+            <div class="field" data-f="invoice_number"><label for="f-number">N° facture</label><input id="f-number" name="invoice_number" autocomplete="off" required></div>
+            <div class="field" data-f="supplier_name"><label for="f-supplier">Fournisseur</label><input id="f-supplier" name="supplier_name" autocomplete="off" list="supplier-list" required></div>
+            <div class="field" data-f="invoice_date"><label for="f-date">Date de facture</label><input id="f-date" name="invoice_date" type="date" required></div>
+            <div class="field" data-f="amount_ttc"><label for="f-total">Total TTC</label>
+              <div class="row2"><input id="f-total" name="amount_ttc" inputmode="decimal" autocomplete="off" required><select id="f-currency" name="currency" aria-label="Devise"></select></div>
+            </div>
+            <div class="field" data-f="department"><label for="f-dep">Département</label><select id="f-dep" name="department" required></select></div>
+            <label class="checkline" id="apply-line" hidden><input type="checkbox" id="f-apply"> <span>Classer aussi dans ce département les autres factures <b>non classées</b> de ce fournisseur</span></label>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="d-foot">
+      <button type="button" class="btn danger" id="review-delete" hidden>Supprimer</button>
+      <div class="spacer"></div>
+      <button type="button" class="btn" data-close>Annuler</button>
+      <button type="submit" class="btn primary" id="review-save" disabled>Enregistrer</button>
+    </div>
+  </form>
+</dialog>
+<datalist id="supplier-list"></datalist>
+
+<!-- camera -->
+<dialog id="camera" class="medium">
+  <div class="d-head"><h2>Scanner une facture</h2><button type="button" class="btn ghost" data-close aria-label="Fermer">✕</button></div>
+  <div class="d-body camera"><video id="video" autoplay playsinline muted></video><p class="sub">Placez la facture à plat, bien éclairée, et cadrez toute la page.</p></div>
+  <div class="d-foot"><button class="btn" data-close>Annuler</button><button class="btn primary" id="shoot">Prendre la photo</button></div>
+</dialog>
+
+<!-- settings (admins) -->
+<dialog id="settings" class="medium">
+  <form id="settings-form" novalidate>
+    <div class="d-head"><h2>Paramètres de la société</h2><button type="button" class="btn ghost" data-close aria-label="Fermer">✕</button></div>
+    <div class="d-body">
+      <div id="settings-notice"></div>
+      <div class="section-title">Société</div>
+      <div class="row2" style="grid-template-columns: 1fr 140px">
+        <div class="field"><label for="s-name">Nom</label><input id="s-name" required></div>
+        <div class="field"><label for="s-currency">Devise par défaut</label><select id="s-currency"></select></div>
+      </div>
+      <div class="section-title">Départements</div>
+      <div class="dep-list" id="s-deps"></div>
+      <div class="inline"><input id="s-new-dep" placeholder="Nouveau département" maxlength="60" aria-label="Nouveau département"><button type="button" class="btn" id="s-add-dep">Ajouter</button></div>
+      <div class="section-title">Utilisateurs</div>
+      <table class="users"><tbody id="s-users"></tbody></table>
+      <div class="user-form">
+        <input id="u-email" type="email" placeholder="E-mail" aria-label="E-mail">
+        <input id="u-name" placeholder="Nom" aria-label="Nom">
+        <select id="u-role" aria-label="Rôle"><option value="user">Utilisateur</option><option value="admin">Admin</option></select>
+        <button type="button" class="btn" id="u-add">Ajouter</button>
+      </div>
+      <div id="u-result"></div>
+    </div>
+    <div class="d-foot"><button type="button" class="btn" data-close>Fermer</button><button type="submit" class="btn primary">Enregistrer</button></div>
+  </form>
+</dialog>
+
+<!-- password -->
+<dialog id="password" class="small">
+  <form id="password-form" novalidate>
+    <div class="d-head"><h2>Changer le mot de passe</h2><button type="button" class="btn ghost" data-close aria-label="Fermer">✕</button></div>
+    <div class="d-body">
+      <div id="pw-notice"></div>
+      <div class="field"><label for="pw-current">Mot de passe actuel</label><input id="pw-current" type="password" autocomplete="current-password"></div>
+      <div class="field"><label for="pw-next">Nouveau mot de passe (10 caractères minimum)</label><input id="pw-next" type="password" autocomplete="new-password" minlength="10"></div>
+    </div>
+    <div class="d-foot"><button type="button" class="btn" data-close>Annuler</button><button type="submit" class="btn primary">Enregistrer</button></div>
+  </form>
+</dialog>
+
+<div class="tooltip" id="tooltip" hidden></div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+'use strict';
+const $ = (s) => document.querySelector(s);
+const MONTHS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+const fmt0 = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 });
+const fmt3 = new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+const compact = new Intl.NumberFormat('fr-FR', { notation: 'compact', maximumFractionDigits: 1 });
+const frDate = (iso) => (iso ? iso.split('-').reverse().join('/') : '');
+const NONE = '__none';
+
+/** Builds DOM nodes; text is always set with textContent (never HTML) so data cannot inject markup. */
+function h(tag, attrs = {}, ...children) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (v === null || v === undefined || v === false) continue;
+    if (k === 'class') el.className = v;
+    else if (k === 'style') el.style.cssText = v;
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else el.setAttribute(k, v === true ? '' : v);
+  }
+  for (const c of children.flat(Infinity)) if (c !== null && c !== undefined && c !== false) el.append(c.nodeType ? c : String(c));
+  return el;
+}
+
+async function api(path, opts = {}) {
+  const res = await fetch(path, {
+    ...opts,
+    headers: { ...(opts.body && !(opts.body instanceof Blob) ? { 'Content-Type': 'application/json' } : {}), 'x-opspilot': '1', ...(opts.headers || {}) },
+    body: opts.body && !(opts.body instanceof Blob) ? JSON.stringify(opts.body) : opts.body,
+  });
+  if (res.status === 401) { location.href = '/login'; throw new Error('Session expirée.'); }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) { const e = new Error(data.error || 'Erreur.'); e.errors = data.errors; throw e; }
+  return data;
+}
+
+function notice(container, kind, title, list) {
+  container.replaceChildren(title ? h('div', { class: `notice ${kind}` }, title, list?.length ? h('ul', {}, list.map((x) => h('li', {}, x))) : null) : '');
+}
+
+let toastTimer;
+function toast(text, link) {
+  const t = $('#toast');
+  t.replaceChildren(h('span', {}, text), link ? h('a', { href: link.href, target: '_blank', rel: 'noopener' }, link.text) : '');
+  t.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.hidden = true; }, 6000);
+}
+
+/* ---------------- state ---------------- */
+const state = { period: 'year', department: '', q: '', supplier: '', from: '', to: '', limit: 20, config: null, rows: [], selected: new Set() };
+try { const p = localStorage.getItem('opspilot.period'); if (['month', 'quarter', 'year', 'all'].includes(p)) state.period = p; } catch {}
+
+const params = (extra = {}) => {
+  const sp = new URLSearchParams();
+  if (state.period !== 'all') sp.set('period', state.period);
+  if (state.department) sp.set('department', state.department);
+  if (state.q) sp.set('q', state.q);
+  for (const k of ['supplier', 'from', 'to']) if (state[k]) sp.set(k, state[k]);
+  for (const [k, v] of Object.entries(extra)) sp.set(k, v);
+  return sp.toString();
+};
+const depLabel = (d) => (d === NONE || d === null ? 'Non classé' : d);
+const money = (n) => `${fmt0.format(n)} ${state.config?.company.currency ?? ''}`.trim();
+
+/* ---------------- config / header ---------------- */
+async function loadConfig() {
+  state.config = await api('/api/config');
+  const { company, me, departments, currencies } = state.config;
+  $('#company').replaceChildren(company.name, h('small', {}, 'Factures fournisseurs'));
+  document.title = `${company.name} · Factures`;
+  $('#user-name').textContent = me.name;
+  $('#menu-name').textContent = me.name;
+  $('#menu-email').textContent = `${me.email} · ${company.name}`;
+  $('#open-settings').hidden = me.role !== 'admin';
+  $('#f-currency').replaceChildren(...currencies.map((c) => h('option', { value: c }, c)));
+  const keep = $('#upload-dep').value;
+  $('#upload-dep').replaceChildren(h('option', { value: '' }, 'Département : automatique'),
+    ...departments.map((d) => h('option', { value: d.name }, `Département : ${d.name}`)));
+  $('#upload-dep').value = departments.some((d) => d.name === keep) ? keep : '';
+  $('#f-filter-dep').replaceChildren(h('option', { value: '' }, 'Tous'), ...departments.map((d) => h('option', { value: d.name }, d.name)),
+    h('option', { value: NONE }, 'Non classé'));
+  $('#f-filter-dep').value = state.department;
+  $('#f-dep').replaceChildren(h('option', { value: '' }, departments.length ? 'Choisir…' : 'Aucun département configuré'),
+    ...departments.map((d) => h('option', { value: d.name }, d.name)));
+}
+
+/* ---------------- dashboard ---------------- */
+const tip = $('#tooltip');
+function showTip(e, title, line) {
+  tip.replaceChildren(h('b', {}, title), line);
+  tip.hidden = false;
+  const r = tip.getBoundingClientRect();
+  let x = e.clientX + 14, y = e.clientY + 14;
+  if (x + r.width > innerWidth - 8) x = e.clientX - r.width - 14;
+  if (y + r.height > innerHeight - 8) y = e.clientY - r.height - 14;
+  tip.style.left = `${x}px`; tip.style.top = `${y}px`;
+}
+const hideTip = () => { tip.hidden = true; };
+
+function renderDepartments(rows) {
+  const box = $('#dep-chart');
+  box.classList.toggle('has-selection', Boolean(state.department));
+  if (!rows.length) return box.replaceChildren(h('div', { class: 'empty' }, 'Aucune facture sur cette période.'));
+  const max = Math.max(...rows.map((r) => r.total), 1);
+  box.replaceChildren(...rows.map((r) => {
+    const key = r.department ?? NONE;
+    const label = depLabel(r.department);
+    const pct = Math.max(0.5, (r.total / max) * 100);
+    return h('button', {
+      class: `bar-row${state.department === key ? ' selected' : ''}`, type: 'button',
+      'aria-pressed': state.department === key ? 'true' : 'false',
+      'aria-label': `${label} : ${money(r.total)}, ${r.invoices} facture${r.invoices > 1 ? 's' : ''}`,
+      onclick: () => setDepartment(state.department === key ? '' : key),
+      onmousemove: (e) => showTip(e, label, `${fmt3.format(r.total)} ${state.config.company.currency} · ${r.invoices} facture${r.invoices > 1 ? 's' : ''}`),
+      onmouseleave: hideTip,
+    },
+    h('span', { class: 'name', title: label }, label),
+    h('span', { class: 'track' }, h('span', { class: `fill${r.department ? '' : ' none'}`, style: `width:calc((100% - 70px) * ${pct / 100})` }), h('span', { class: 'val num' }, compact.format(r.total))));
+  }));
+}
+
+function niceMax(v) {
+  if (v <= 0) return 1;
+  const p = 10 ** Math.floor(Math.log10(v));
+  return [1, 2, 2.5, 5, 10].map((m) => m * p).find((m) => m >= v);
+}
+
+function renderMonths(rows) {
+  const box = $('#month-chart');
+  if (!rows.some((r) => r.invoices)) return box.replaceChildren(h('div', { class: 'empty' }, 'Aucune facture sur les 12 derniers mois.'));
+  const max = niceMax(Math.max(...rows.map((r) => r.total)));
+  const ticks = [0, 0.5, 1].map((f) => max * f);
+  const plot = h('div', { class: 'plot' },
+    ticks.map((t) => [h('div', { class: 'gridline', style: `bottom:${(t / max) * 100}%` }), h('div', { class: 'tick num', style: `top:${100 - (t / max) * 100}%` }, compact.format(t))]),
+    rows.map((r) => {
+      const [y, m] = r.month.split('-').map(Number);
+      const name = `${MONTHS[m - 1]} ${y}`;
+      return h('div', {
+        class: 'col', tabindex: '0', 'aria-label': `${name} : ${money(r.total)}, ${r.invoices} factures`,
+        onmousemove: (e) => showTip(e, name, `${fmt3.format(r.total)} ${state.config.company.currency} · ${r.invoices} facture${r.invoices > 1 ? 's' : ''}`),
+        onmouseleave: hideTip,
+      }, r.total > 0 ? h('div', { class: 'c', style: `height:${Math.max(1, (r.total / max) * 100)}%` }) : null);
+    }));
+  const labels = h('div', { class: 'labels' }, rows.map((r) => h('span', {}, MONTHS[Number(r.month.slice(5)) - 1].replace('.', ''))));
+  box.replaceChildren(h('div', { class: 'cols' }, plot, labels));
+}
+
+async function loadDashboard() {
+  const sp = new URLSearchParams(params());
+  for (const k of ['q', 'supplier', 'from', 'to']) sp.delete(k); // the table filters only narrow the table
+  const d = await api(`/api/dashboard?${sp}`);
+  const k = d.kpis;
+  $('#k-total').replaceChildren(fmt0.format(k.total), h('small', {}, d.currency));
+  $('#k-total-note').textContent = k.other_currency ? `${k.other_currency} facture(s) dans une autre devise non incluse(s)` : '';
+  $('#k-count').textContent = fmt0.format(k.invoices);
+  $('#k-count-note').replaceChildren(k.unclassified
+    ? h('button', { onclick: () => setDepartment(NONE) }, `${k.unclassified} non classée${k.unclassified > 1 ? 's' : ''}`)
+    : '');
+  $('#k-suppliers').textContent = fmt0.format(k.suppliers);
+  const named = d.departments.filter((x) => x.department);
+  $('#k-dep-note').textContent = named.length ? `Plus gros poste : ${named[0].department}` : '';
+  $('#month-sub').textContent = state.department ? `12 derniers mois · ${depLabel(state.department)}` : '12 derniers mois';
+  renderDepartments(d.departments);
+  renderMonths(d.months);
+}
+
+/* ---------------- invoices table ---------------- */
+async function loadInvoices() {
+  const rows = await api(`/api/invoices?${params({ limit: state.limit + 1 })}`);
+  state.rows = rows.slice(0, state.limit);
+  $('#more').hidden = rows.length <= state.limit;
+  $('#no-rows').hidden = rows.length > 0;
+  $('#count').textContent = rows.length ? `${state.rows.length}${rows.length > state.limit ? '+' : ''}` : '';
+  // click a row = select it (Shift+click = select a range); « Modifier » or double-click = open it
+  $('#rows').replaceChildren(...state.rows.map((r, i) => h('tr', {
+    tabindex: '0', class: state.selected.has(r.id) ? 'picked' : null, 'aria-selected': state.selected.has(r.id) ? 'true' : 'false',
+    onclick: (e) => {
+      if (e.target.closest('a, button')) return;
+      if (e.target.closest('.sel input')) return pickRow(i, e.target.checked, e.shiftKey);
+      pickRow(i, !state.selected.has(r.id), e.shiftKey);
+    },
+    ondblclick: (e) => { if (!e.target.closest('a, button, .sel')) openEdit(r); },
+    onkeydown: (e) => {
+      if (e.target !== e.currentTarget) return;
+      if (e.key === ' ') { e.preventDefault(); pickRow(i, !state.selected.has(r.id), e.shiftKey); }
+      if (e.key === 'Enter') openEdit(r);
+    },
+  },
+    h('td', { class: 'sel' }, h('input', { type: 'checkbox', tabindex: '-1', checked: state.selected.has(r.id), 'aria-label': `Sélectionner la facture ${r.invoice_number}` })),
+    h('td', {}, r.invoice_number),
+    h('td', { class: 'supplier', title: r.supplier_name }, r.supplier_name),
+    h('td', { class: 'num' }, frDate(r.invoice_date)),
+    h('td', { class: 'r num' }, `${fmt3.format(r.amount_ttc)} ${r.currency}`),
+    h('td', {}, h('span', { class: `tag${r.department ? '' : ' none'}` }, depLabel(r.department))),
+    h('td', {}, r.drive_url ? h('a', { class: 'doc', href: r.drive_url, target: '_blank', rel: 'noopener' }, 'Ouvrir ↗') : '–'),
+    h('td', { class: 'r' }, h('button', { type: 'button', class: 'edit-btn', title: 'Modifier', 'aria-label': `Modifier la facture ${r.invoice_number}`, onclick: () => openEdit(r) }, 'Modifier')),
+  )));
+  lastPicked = null;
+  renderSelection();
+}
+
+let lastPicked = null;
+/** Selects or unselects one row; with Shift, every row between the last clicked one and this one. */
+function pickRow(i, on, range) {
+  const [a, b] = range && lastPicked !== null ? [Math.min(lastPicked, i), Math.max(lastPicked, i)] : [i, i];
+  const trs = $('#rows').children;
+  for (let k = a; k <= b; k++) {
+    const id = state.rows[k].id;
+    on ? state.selected.add(id) : state.selected.delete(id);
+    trs[k].classList.toggle('picked', on);
+    trs[k].setAttribute('aria-selected', String(on));
+    trs[k].querySelector('.sel input').checked = on;
+  }
+  lastPicked = i;
+  window.getSelection()?.removeAllRanges(); // Shift+click would otherwise highlight text
+  renderSelection();
+}
+
+function renderSelection() {
+  const n = state.selected.size;
+  $('#selbar').hidden = !n;
+  $('#sel-count').textContent = `${n} facture${n > 1 ? 's' : ''} sélectionnée${n > 1 ? 's' : ''}`;
+  $('#export').textContent = n ? `Exporter la sélection (${n})` : 'Exporter Excel';
+  $('#export').title = n ? 'Exporte uniquement les factures cochées' : 'Exporte toutes les factures qui correspondent aux filtres';
+  const visible = state.rows.filter((r) => state.selected.has(r.id)).length;
+  $('#sel-all').checked = visible > 0 && visible === state.rows.length;
+  $('#sel-all').indeterminate = visible > 0 && visible < state.rows.length;
+  $('#f-filter-reset').hidden = !(state.supplier || state.from || state.to || state.department || state.q);
+}
+
+async function exportRegister() {
+  const btn = $('#export');
+  btn.disabled = true;
+  try {
+    // selection → exactly the ticked rows; otherwise → everything matching the filters (not only the rows shown)
+    const body = state.selected.size ? { ids: [...state.selected] } : Object.fromEntries(new URLSearchParams(params()));
+    const res = await fetch('/api/invoices/export.xlsx', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-opspilot': '1' }, body: JSON.stringify(body) });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "L'export a échoué.");
+    const url = URL.createObjectURL(await res.blob());
+    const name = /filename="([^"]+)"/.exec(res.headers.get('content-disposition') ?? '')?.[1] ?? 'registre_factures.xlsx';
+    h('a', { href: url, download: name }).click();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  } catch (e) {
+    toast(e.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function loadSuppliers() {
+  const names = await api('/api/suppliers');
+  const sel = $('#f-filter-supplier');
+  sel.replaceChildren(h('option', { value: '' }, 'Tous'), ...names.map((n) => h('option', { value: n }, n)));
+  sel.value = names.includes(state.supplier) ? state.supplier : '';
+  $('#supplier-list').replaceChildren(...names.map((n) => h('option', { value: n })));
+}
+
+const reloadTable = () => { state.limit = 20; loadInvoices().catch((e) => toast(e.message)); };
+
+const refresh = () => Promise.all([loadDashboard(), loadInvoices(), loadSuppliers()]).catch((e) => toast(e.message));
+
+function setDepartment(d) {
+  state.department = d; state.limit = 20;
+  $('#f-filter-dep').value = d;
+  $('#dep-chip').hidden = !d;
+  $('#dep-chip-name').textContent = `Département : ${depLabel(d)}`;
+  refresh();
+}
+
+function setPeriod(p) {
+  state.period = p; state.limit = 20;
+  try { localStorage.setItem('opspilot.period', p); } catch {}
+  for (const b of document.querySelectorAll('#period button')) b.setAttribute('aria-pressed', b.dataset.p === p ? 'true' : 'false');
+  refresh();
+}
+
+/* ---------------- review dialog (new scan or edit) ---------------- */
+const review = $('#review');
+let current = null;       // { mode: 'new', draft } | { mode: 'edit', invoice }
+const queue = [];         // files waiting to be read, one dialog at a time
+let localPreview = null;
+
+function setPreview(node) { $('#preview').replaceChildren(node); }
+function previewFor(url, isPdf) {
+  return isPdf ? h('iframe', { src: url, title: 'Aperçu du document' }) : h('img', { src: url, alt: 'Aperçu de la facture' });
+}
+
+function fillForm(f, missing = []) {
+  $('#f-number').value = f.invoice_number ?? '';
+  $('#f-supplier').value = f.supplier_name ?? '';
+  $('#f-date').value = f.invoice_date ?? '';
+  $('#f-total').value = f.amount_ttc === '' || f.amount_ttc === null || f.amount_ttc === undefined ? '' : String(f.amount_ttc).replace('.', ',');
+  $('#f-currency').value = f.currency || state.config.company.currency;
+  const known = state.config.departments.some((d) => d.name === f.department);
+  $('#f-dep').value = known ? f.department : '';
+  const check = new Set(missing);
+  if (!known) check.add('department');
+  for (const el of document.querySelectorAll('#review-fields .field')) {
+    const on = check.has(el.dataset.f);
+    el.classList.toggle('check', on);
+    el.querySelector('.hint')?.remove();
+    if (on) el.append(h('div', { class: 'hint' }, el.dataset.f === 'department' ? 'À choisir' : 'Non trouvé sur le document : à saisir'));
+  }
+}
+
+function showFields(show) {
+  $('#review-loading').hidden = show;
+  $('#review-fields').hidden = !show;
+  $('#review-save').disabled = !show;
+}
+
+async function processFile(file) {
+  current = { mode: 'new', draft: null };
+  $('#review-title').textContent = 'Vérifier la facture';
+  $('#review-delete').hidden = true;
+  $('#apply-line').hidden = true;
+  notice($('#review-notice'));
+  showFields(false);
+  if (localPreview) URL.revokeObjectURL(localPreview);
+  localPreview = file.type.startsWith('image/') ? URL.createObjectURL(file) : null;
+  setPreview(localPreview ? previewFor(localPreview, false) : h('div', { class: 'empty' }, file.name));
+  if (!review.open) review.showModal();
+  try {
+    if (file.size > 15 * 1024 * 1024) throw new Error('Fichier trop volumineux (15 Mo maximum).');
+    const d = await api(`/api/scan?name=${encodeURIComponent(file.name)}`, { method: 'POST', body: file });
+    current.draft = d;
+    if (d.is_pdf) setPreview(previewFor(d.preview_url, true));
+    // a department chosen before uploading wins over the one suggested from the supplier
+    fillForm({ ...d.fields, department: $('#upload-dep').value || d.fields.department }, d.missing);
+    if (!d.text_found) notice($('#review-notice'), 'warn', "Le texte de ce document n'a pas pu être lu. Saisissez le résumé à partir de l'aperçu.");
+    else if (d.missing.length) notice($('#review-notice'), 'warn', 'Certaines informations n\'ont pas été trouvées : complétez les champs en orange.');
+    else notice($('#review-notice'), 'ok', 'Informations lues sur le document. Vérifiez-les puis enregistrez.');
+    showFields(true);
+    (d.missing.length ? document.querySelector('#review-fields .field.check input, #review-fields .field.check select') : $('#f-dep'))?.focus();
+  } catch (e) {
+    $('#review-loading').replaceChildren(h('div', { class: 'notice bad' }, e.message));
+  }
+}
+
+function nextInQueue() {
+  const file = queue.shift();
+  if (file) processFile(file);
+}
+
+function addFiles(files) {
+  const ok = [...files].filter((f) => /\.(pdf|jpe?g|png)$/i.test(f.name));
+  if (ok.length < files.length) toast('Formats acceptés : PDF, JPG ou PNG.');
+  queue.push(...ok);
+  if (!review.open) nextInQueue();
+}
+
+function openEdit(inv) {
+  current = { mode: 'edit', invoice: inv };
+  $('#review-title').textContent = `Facture ${inv.invoice_number}`;
+  $('#review-delete').hidden = false;
+  $('#apply-line').hidden = false;
+  $('#f-apply').checked = !inv.department;
+  notice($('#review-notice'), inv.department ? '' : 'warn', inv.department ? '' : 'Cette facture n\'est pas encore classée : choisissez un département.');
+  $('#review-loading').replaceChildren(h('div', { class: 'spinner' }), h('div', {}, 'Lecture de la facture…'));
+  fillForm(inv);
+  showFields(true);
+  const isPdf = /\.pdf$/i.test(inv.source_file ?? '');
+  const isImage = /\.(jpe?g|png)$/i.test(inv.source_file ?? '');
+  setPreview(inv.drive_url && (isPdf || isImage) ? previewFor(inv.drive_url, isPdf)
+    : h('div', { class: 'empty' }, inv.drive_url ? h('a', { class: 'doc', href: inv.drive_url, target: '_blank', rel: 'noopener' }, `Ouvrir le document (${inv.source_file}) ↗`) : 'Aucun document'));
+  review.showModal();
+}
+
+function formValues() {
+  return {
+    invoice_number: $('#f-number').value, supplier_name: $('#f-supplier').value, invoice_date: $('#f-date').value,
+    amount_ttc: $('#f-total').value, currency: $('#f-currency').value, department: $('#f-dep').value,
+  };
+}
+
+$('#review-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = $('#review-save');
+  btn.disabled = true;
+  try {
+    if (current.mode === 'new') {
+      const r = await api('/api/invoices', { method: 'POST', body: { ...formValues(), draft_id: current.draft.draft_id } });
+      current = null;
+      review.close();
+      toast('Facture enregistrée dans le Drive.', { href: r.drive_url, text: 'Ouvrir' });
+    } else {
+      const r = await api(`/api/invoices/${current.invoice.id}`, { method: 'POST', body: { ...formValues(), apply_to_supplier: $('#f-apply').checked } });
+      current = null;
+      review.close();
+      toast(r.also_classified ? `Facture mise à jour, et ${r.also_classified} autre(s) facture(s) classée(s).` : 'Facture mise à jour.');
+    }
+    refresh();
+  } catch (err) {
+    notice($('#review-notice'), 'bad', err.errors?.length ? 'Impossible d\'enregistrer :' : err.message, err.errors);
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+$('#review-delete').addEventListener('click', async () => {
+  const inv = current.invoice;
+  if (!confirm(`Supprimer la facture ${inv.invoice_number} de ${inv.supplier_name} ? Le document reste dans le Drive.`)) return;
+  try {
+    await api(`/api/invoices/${inv.id}/delete`, { method: 'POST' });
+    state.selected.delete(inv.id);
+    current = null;
+    review.close();
+    toast('Facture supprimée.');
+    refresh();
+  } catch (err) { notice($('#review-notice'), 'bad', err.message); }
+});
+
+review.addEventListener('close', () => {
+  // a scan that was not saved is discarded right away
+  if (current?.mode === 'new' && current.draft) api(`/api/drafts/${current.draft.draft_id}/discard`, { method: 'POST' }).catch(() => {});
+  current = null;
+  setPreview('');
+  $('#review-loading').replaceChildren(h('div', { class: 'spinner' }), h('div', {}, 'Lecture de la facture…'));
+  setTimeout(nextInQueue, 150);
+});
+
+/* ---------------- upload, drag & drop, camera ---------------- */
+$('#upload-btn').addEventListener('click', () => $('#file-input').click());
+$('#file-input').addEventListener('change', (e) => { addFiles(e.target.files); e.target.value = ''; });
+$('#photo-input').addEventListener('change', (e) => { addFiles(e.target.files); e.target.value = ''; });
+
+const zone = $('#dropzone');
+for (const ev of ['dragenter', 'dragover']) document.addEventListener(ev, (e) => { if ([...e.dataTransfer.types].includes('Files')) { e.preventDefault(); zone.classList.add('drag'); } });
+for (const ev of ['dragleave', 'drop']) document.addEventListener(ev, (e) => { if (ev === 'dragleave' && e.relatedTarget) return; zone.classList.remove('drag'); });
+document.addEventListener('drop', (e) => { if (e.dataTransfer.files.length) { e.preventDefault(); addFiles(e.dataTransfer.files); } });
+
+const camera = $('#camera');
+let stream = null;
+$('#scan-btn').addEventListener('click', async () => {
+  if (!navigator.mediaDevices?.getUserMedia) return $('#photo-input').click();
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 2560 }, height: { ideal: 1440 } }, audio: false });
+    $('#video').srcObject = stream;
+    camera.showModal();
+  } catch {
+    $('#photo-input').click(); // no camera or access refused: let the device pick a photo instead
+  }
+});
+camera.addEventListener('close', () => { stream?.getTracks().forEach((t) => t.stop()); stream = null; });
+$('#shoot').addEventListener('click', () => {
+  const v = $('#video');
+  if (!v.videoWidth) return;
+  const c = h('canvas', { width: v.videoWidth, height: v.videoHeight });
+  c.getContext('2d').drawImage(v, 0, 0);
+  c.toBlob((blob) => {
+    camera.close();
+    const stamp = new Date().toISOString().slice(0, 19).replace(/[-:T]/g, '').replace(/^(\d{8})/, '$1_');
+    addFiles([new File([blob], `scan_${stamp}.jpg`, { type: 'image/jpeg' })]);
+  }, 'image/jpeg', 0.92);
+});
+
+/* ---------------- settings ---------------- */
+const settings = $('#settings');
+let draftDeps = [];
+
+function renderDeps() {
+  const used = Object.fromEntries(state.config.departments.map((d) => [d.name, d.invoices]));
+  $('#s-deps').replaceChildren(...draftDeps.map((d) => h('span', { class: 'chip' }, d, used[d] ? h('small', {}, `· ${used[d]}`) : null,
+    h('button', { type: 'button', 'aria-label': `Retirer ${d}`, title: used[d] ? 'Des factures y sont classées' : 'Retirer', onclick: () => { draftDeps = draftDeps.filter((x) => x !== d); renderDeps(); } }, '✕'))));
+}
+
+async function openSettings() {
+  await loadConfig();
+  const { company, departments, users, currencies } = state.config;
+  $('#s-name').value = company.name;
+  $('#s-currency').replaceChildren(...currencies.map((c) => h('option', { value: c }, c)));
+  $('#s-currency').value = company.currency;
+  draftDeps = departments.map((d) => d.name);
+  renderDeps();
+  $('#s-users').replaceChildren(...users.map((u) => h('tr', {}, h('td', {}, h('b', {}, u.name), h('br'), h('span', { class: 'count' }, u.email)), h('td', { class: 'count' }, u.role === 'admin' ? 'Admin' : 'Utilisateur'))));
+  notice($('#settings-notice')); notice($('#u-result'));
+  settings.showModal();
+}
+
+function addDep() {
+  const v = $('#s-new-dep').value.trim().replace(/\s+/g, ' ');
+  if (v && !draftDeps.some((d) => d.toLowerCase() === v.toLowerCase())) { draftDeps.push(v); renderDeps(); }
+  $('#s-new-dep').value = '';
+  $('#s-new-dep').focus();
+}
+$('#s-add-dep').addEventListener('click', addDep);
+$('#s-new-dep').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addDep(); } });
+
+$('#settings-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  try {
+    await api('/api/config', { method: 'POST', body: { name: $('#s-name').value, currency: $('#s-currency').value, departments: draftDeps } });
+    await loadConfig();
+    settings.close();
+    toast('Paramètres enregistrés.');
+    refresh();
+  } catch (err) { notice($('#settings-notice'), 'bad', err.message); }
+});
+
+$('#u-add').addEventListener('click', async () => {
+  try {
+    const r = await api('/api/users', { method: 'POST', body: { email: $('#u-email').value, name: $('#u-name').value, role: $('#u-role').value } });
+    notice($('#u-result'), 'ok', `Compte créé pour ${r.email}. Mot de passe (affiché une seule fois) : ${r.password}`);
+    $('#u-email').value = ''; $('#u-name').value = '';
+    const cfg = await api('/api/config');
+    state.config.users = cfg.users;
+    $('#s-users').replaceChildren(...cfg.users.map((u) => h('tr', {}, h('td', {}, h('b', {}, u.name), h('br'), h('span', { class: 'count' }, u.email)), h('td', { class: 'count' }, u.role === 'admin' ? 'Admin' : 'Utilisateur'))));
+  } catch (err) { notice($('#u-result'), 'bad', err.message); }
+});
+
+/* ---------------- user menu, password ---------------- */
+const menu = $('#user-menu');
+$('#user-btn').addEventListener('click', (e) => { e.stopPropagation(); menu.hidden = !menu.hidden; $('#user-btn').setAttribute('aria-expanded', String(!menu.hidden)); });
+document.addEventListener('click', () => { menu.hidden = true; });
+$('#logout').addEventListener('click', async () => { await api('/api/logout', { method: 'POST' }).catch(() => {}); location.href = '/login'; });
+$('#open-password').addEventListener('click', () => { notice($('#pw-notice')); $('#password-form').reset(); $('#password').showModal(); });
+$('#password-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  try {
+    await api('/api/me/password', { method: 'POST', body: { current: $('#pw-current').value, next: $('#pw-next').value } });
+    $('#password').close();
+    toast('Mot de passe modifié.');
+  } catch (err) { notice($('#pw-notice'), 'bad', err.message); }
+});
+$('#open-settings').addEventListener('click', () => openSettings().catch((e) => toast(e.message)));
+
+for (const b of document.querySelectorAll('[data-close]')) b.addEventListener('click', () => b.closest('dialog').close());
+
+/* ---------------- filters ---------------- */
+for (const b of document.querySelectorAll('#period button')) b.addEventListener('click', () => setPeriod(b.dataset.p));
+$('#dep-chip-clear').addEventListener('click', () => setDepartment(''));
+$('#export').addEventListener('click', exportRegister);
+$('#f-filter-supplier').addEventListener('change', (e) => { state.supplier = e.target.value; reloadTable(); });
+$('#f-filter-dep').addEventListener('change', (e) => setDepartment(e.target.value));
+$('#f-filter-from').addEventListener('change', (e) => { state.from = e.target.value; reloadTable(); });
+$('#f-filter-to').addEventListener('change', (e) => { state.to = e.target.value; reloadTable(); });
+$('#f-filter-reset').addEventListener('click', () => {
+  Object.assign(state, { supplier: '', from: '', to: '', q: '' });
+  for (const id of ['#f-filter-supplier', '#f-filter-from', '#f-filter-to', '#search']) $(id).value = '';
+  setDepartment('');
+});
+$('#sel-all').addEventListener('change', (e) => {
+  for (const r of state.rows) e.target.checked ? state.selected.add(r.id) : state.selected.delete(r.id);
+  for (const tr of $('#rows').children) { tr.classList.toggle('picked', e.target.checked); tr.querySelector('.sel input').checked = e.target.checked; }
+  renderSelection();
+});
+$('#sel-clear').addEventListener('click', () => {
+  state.selected.clear();
+  for (const tr of $('#rows').children) { tr.classList.remove('picked'); tr.querySelector('.sel input').checked = false; }
+  renderSelection();
+});
+let searchTimer;
+$('#search').addEventListener('input', (e) => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => { state.q = e.target.value.trim(); state.limit = 20; loadInvoices().catch((err) => toast(err.message)); }, 250);
+});
+$('#more-btn').addEventListener('click', () => { state.limit += 20; loadInvoices().catch((e) => toast(e.message)); });
+
+loadConfig().then(() => setPeriod(state.period)).catch((e) => toast(e.message));
+</script>
+</body>
+</html>

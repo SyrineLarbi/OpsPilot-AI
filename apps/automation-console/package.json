@@ -1,0 +1,20 @@
+{
+  "name": "opspilot-automation-console",
+  "version": "1.0.0",
+  "private": true,
+  "description": "OpsPilot · Factures (FR) : scanner ou importer une facture, résumé classé par département, plusieurs sociétés",
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test test/app.test.mjs",
+    "create-user": "node create-user.mjs",
+    "setup": "node setup-company.mjs"
+  },
+  "dependencies": {
+    "@tesseract.js-data/eng": "^1.0.0",
+    "@tesseract.js-data/fra": "^1.0.0",
+    "exceljs": "^4.4.0",
+    "pg": "^8.23.1",
+    "tesseract.js": "^7.0.0"
+  }
+}
